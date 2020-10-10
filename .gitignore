@@ -1,2 +1,4 @@
+#dont push dist...
 dist
+#node
 node_modules
