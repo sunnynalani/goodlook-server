@@ -1,4 +1,6 @@
-#dont push dist...
+#misc
 dist
+.env
+
 #node
 node_modules

@@ -10,6 +10,8 @@ export default {
   },
   entities: [Client],
   dbName: 'goodlook',
+  user: 'postgres',
+  password: '091098',
   type: 'postgresql',
   debug: !__prod__,
 } as Parameters<typeof MikroORM.init>[0]
