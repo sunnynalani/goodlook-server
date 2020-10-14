@@ -3,10 +3,10 @@ import { ObjectType, Field } from 'type-graphql'
 
 @ObjectType()
 @Entity()
-export class Client {
+export class User {
 
+  @Field()
   @PrimaryKey()
-  @Field(() => Number)
   id!: number
 
   @Field(() => String)
@@ -14,11 +14,15 @@ export class Client {
   createdAt = new Date()
 
   @Field(() => String)
-  @Property({ type: 'date' , onUpdate: () => new Date() })
+  @Property({ type: 'date', onUpdate: () => new Date() })
   updatedAt = new Date()
 
   @Field(() => String)
+  @Property({ type: 'text', unique: true })
+  username!: string
+
+  //hash password using argon2
   @Property({ type: 'text' })
-  firstName: String
+  password!: string
 
 }
