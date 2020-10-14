@@ -1,4 +1,4 @@
-import { Client } from './entities/Client'
+import * as entities from './entities'
 import { __prod__ } from './constants'
 import { MikroORM } from '@mikro-orm/core'
 import path from 'path'
@@ -11,7 +11,7 @@ export default {
     path: path.join(__dirname, './migrations'),
     pattern: /^[\w-]+\d+\.[tj]s$/,
   },
-  entities: [Client],
+  entities: Object.values(entities),
   dbName: 'goodlook',
   user: process.env.DB_USER,
   password: process.env.DB_PASSWORD,

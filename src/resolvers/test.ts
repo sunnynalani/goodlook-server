@@ -4,6 +4,6 @@ import { Resolver, Query } from 'type-graphql'
 export class TestResolver {
   @Query(() => String)
   test() {
-    return 'test'
+    return 'tests'
   }
 }
