@@ -8,14 +8,9 @@ import {
   OneToOne,
   JoinColumn,
 } from 'typeorm'
-import { Client, Provider } from './index'
+import { Client, Provider, Address } from './index'
+import { UserType } from '../types'
 import { ObjectType, Field } from 'type-graphql'
-
-//i'm not to sure...
-enum UserType {
-  CLIENT,
-  PROVIDER,
-}
 
 @ObjectType()
 @Entity()
@@ -33,13 +28,24 @@ export class User extends BaseEntity {
   @UpdateDateColumn()
   updatedAt = new Date()
 
-  @Field(() => UserType)
+  @Field(() => UserType, { nullable: true })
   @Column()
   userType!: UserType
 
-  @OneToOne(type => Client)
-  @JoinColumn
+  @Field(() => Client)
+  @OneToOne(() => Client, client => client.userId, { nullable: true, cascade: true })
+  @JoinColumn()
+  client: Client
 
+  @Field(() => Provider)
+  @OneToOne(() => Provider, provider => provider.userId, { nullable: true, cascade: true })
+  @JoinColumn()
+  provider: Provider
+
+  @Field(() => Address)
+  @OneToOne(() => Address, address => address.userId, { nullable: true, cascade: true })
+  @JoinColumn()
+  address: Address
 
   @Field(() => String)
   @Column({ unique: true, nullable: true })

@@ -16,6 +16,10 @@ export class Client extends BaseEntity {
   @Field(() => Number)
   id!: number
 
+  @Field(() => Number)
+  @Column()
+  userId: number
+
   @Field(() => String)
   @CreateDateColumn()
   createdAt = new Date()
@@ -27,5 +31,9 @@ export class Client extends BaseEntity {
   @Field(() => String)
   @Column()
   firstName: String
+
+  @Field(() => String)
+  @Column()
+  lastName: String
 
 }

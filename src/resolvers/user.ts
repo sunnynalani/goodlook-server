@@ -4,38 +4,16 @@ import {
   FieldResolver, 
   Arg, 
   Ctx, 
-  Field, 
-  ObjectType, 
   Query,
   Root,
 } from 'type-graphql'
-import { UsernamePasswordInput } from './UsernamePasswordInput'
+import { UsernamePasswordInput } from '../types/UsernamePasswordInput'
 import { validateRegisterInputs } from '../utils/'
 import { MyContext } from '../types'
-import { User } from '../entities'
+import { User, Client, Provider } from '../entities'
 import argon2 from 'argon2'
 import { COOKIE_NAME } from '../constants'
 import { getConnection } from 'typeorm'
-
-//todo: create enum type to specify client or provider in field
-
-@ObjectType()
-class FieldError {
-  @Field()
-  field: string
-
-  @Field()
-  message: string
-}
-
-@ObjectType()
-class UserResponse {
-  @Field(() => [FieldError], {nullable: true})
-  errors?: FieldError[]
-
-  @Field(() => User, {nullable: true})
-  user?: User
-}
 
 @Resolver(User)
 export class UserResolver {
@@ -57,6 +35,7 @@ export class UserResolver {
   @Mutation(() => UserResponse)
   async register(
     @Arg('input') input: UsernamePasswordInput,
+    @Arg('userType') userType: UserType,
     @Ctx() { req }: MyContext
     ): Promise<UserResponse> {
     const errors = validateRegisterInputs(input)

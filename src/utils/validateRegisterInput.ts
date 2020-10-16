@@ -1,4 +1,4 @@
-import { UsernamePasswordInput } from "../resolvers/UsernamePasswordInput"
+import { UsernamePasswordInput } from "../types/UsernamePasswordInput"
 
 export const validateRegisterInputs = (input: UsernamePasswordInput) => {
   const aggeragateErrors = []

@@ -16,6 +16,10 @@ export class Provider extends BaseEntity {
   @Field(() => Number)
   id!: number
 
+  @Field(() => Number)
+  @Column()
+  userId!: number
+
   @Field(() => String)
   @CreateDateColumn()
   createdAt = new Date()
