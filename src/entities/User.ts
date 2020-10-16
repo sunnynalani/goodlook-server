@@ -1,28 +1,56 @@
-import { Entity, PrimaryKey, Property } from '@mikro-orm/core'
+import {
+  Entity,
+  BaseEntity,
+  PrimaryGeneratedColumn, 
+  Column, 
+  CreateDateColumn,
+  UpdateDateColumn,
+  OneToOne,
+  JoinColumn,
+} from 'typeorm'
+import { Client, Provider } from './index'
 import { ObjectType, Field } from 'type-graphql'
+
+//i'm not to sure...
+enum UserType {
+  CLIENT,
+  PROVIDER,
+}
 
 @ObjectType()
 @Entity()
-export class User {
+export class User extends BaseEntity {
 
   @Field()
-  @PrimaryKey()
+  @PrimaryGeneratedColumn()
   id!: number
 
   @Field(() => String)
-  @Property({ type: 'date' })
+  @CreateDateColumn()
   createdAt = new Date()
 
   @Field(() => String)
-  @Property({ type: 'date', onUpdate: () => new Date() })
+  @UpdateDateColumn()
   updatedAt = new Date()
 
+  @Field(() => UserType)
+  @Column()
+  userType!: UserType
+
+  @OneToOne(type => Client)
+  @JoinColumn
+
+
   @Field(() => String)
-  @Property({ type: 'text', unique: true })
+  @Column({ unique: true, nullable: true })
+  email!: string
+
+  @Field(() => String)
+  @Column({ unique: true })
   username!: string
 
   //hash password using argon2
-  @Property({ type: 'text' })
+  @Column()
   password!: string
 
 }

@@ -1,17 +1,23 @@
-import { Resolver, Mutation, Arg, Ctx, InputType, Field, ObjectType, Query } from 'type-graphql'
+import { 
+  Resolver, 
+  Mutation, 
+  FieldResolver, 
+  Arg, 
+  Ctx, 
+  Field, 
+  ObjectType, 
+  Query,
+  Root,
+} from 'type-graphql'
+import { UsernamePasswordInput } from './UsernamePasswordInput'
+import { validateRegisterInputs } from '../utils/'
 import { MyContext } from '../types'
 import { User } from '../entities'
 import argon2 from 'argon2'
+import { COOKIE_NAME } from '../constants'
+import { getConnection } from 'typeorm'
 
 //todo: create enum type to specify client or provider in field
-@InputType()
-class UsernamePasswordInput {
-  @Field()
-  username: string
-
-  @Field()
-  password: string
-}
 
 @ObjectType()
 class FieldError {
@@ -31,68 +37,96 @@ class UserResponse {
   user?: User
 }
 
-@Resolver()
+@Resolver(User)
 export class UserResolver {
 
   @Query(() => User, {nullable: true})
-  async self(@Ctx() { em, req }: MyContext) {
+  async self(@Ctx() { req }: MyContext) {
     if (!req.session.userId) return null
-    const user = await em.findOne(User, { id: req.session.userId })
-    return user
+    return await User.findOne(parseInt(req.session.userId))
+  }
+
+  @FieldResolver(() => String)
+  email(@Root() user: User, @Ctx() { req }: MyContext) {
+    if (req.session.userId === user.id) {
+      return user.email
+    }
+    return ''
   }
 
   @Mutation(() => UserResponse)
   async register(
     @Arg('input') input: UsernamePasswordInput,
-    @Ctx() { em }: MyContext
-  ) {
-    const aggeragateErrors = []
-    if (input.username.length <= 2) {
-      aggeragateErrors.push({
-        field: 'username',
-        message: 'username must be at least 3 characters'
-      })
-    }
-    if (input.password.length <= 2) {
-      aggeragateErrors.push({
-        field: 'password',
-        message: 'password must be at least 3 characters'
-      })
-    }
-    const checkValid = await em.findOne(User, { username: input.username})
-    if (checkValid) {
-      aggeragateErrors.push({
-        field: 'username',
-        message: 'username already exists'
-      })
-    }
-    if (aggeragateErrors.length !== 0) return { errors: aggeragateErrors }
+    @Ctx() { req }: MyContext
+    ): Promise<UserResponse> {
+    const errors = validateRegisterInputs(input)
+    if (errors) return { errors }
+    let user
     const hashedPassword = await argon2.hash(input.password)
-    const user = em.create(User, { 
-      username: input.username, 
-      password: hashedPassword 
-    })
-    await em.persistAndFlush(user)
+    try {
+      const result = await getConnection()
+        .createQueryBuilder()
+        .insert()
+        .into(User)
+        .values({
+          username: input.username,
+          password: hashedPassword,
+          email: input.email
+        })
+        .returning('*')
+        .execute()
+      user = result.raw[0]
+    } catch (err) {
+      if (err.code === '23505') { //duplicate username...
+        return {
+          errors: [
+            {
+              field: 'username',
+              message: 'this username already exists'
+            },
+          ]
+        }
+      }
+    }
+    req.session.userId = user.id
     return { user }
   }
 
   @Mutation(() => UserResponse)
   async login(
-    @Arg('input') input: UsernamePasswordInput,
-    @Ctx() { em, req }: MyContext
-  ) {
-    const user = await em.findOne(User, { username: input.username })
-    if (!user) {
+    @Arg('usernameOrEmail') usernameOrEmail: string,
+    @Arg('password') password: string,
+    @Ctx() { req }: MyContext
+  ): Promise<UserResponse> {
+    const isEmail = usernameOrEmail.includes('@')
+    const user = await User.findOne(
+      isEmail ?
+      { where: { email: usernameOrEmail }} :
+      { where: { username: usernameOrEmail }}
+    )
+    if (!user && isEmail) {
       return {
         errors: [
           { 
-            field: 'username',
-            message: 'username does not exist'
+            field: 'email',
+            message: 'email does not exist',
           }
         ]
       }
     }
-    const validPassword = await argon2.verify(user.password, input.password)
+  
+    if (!user && !isEmail) {
+      return {
+        errors: [
+          {
+            field: 'username',
+            message: 'username does not exist',
+          }
+        ]
+      }
+    }
+  
+    const validPassword = await argon2.verify(user!.password, password)
     if (!validPassword) {
       return {
         errors: [
@@ -103,8 +137,94 @@ export class UserResolver {
         ]
       }
     }
-    req.session.userId = user.id
+    req.session.userId = user!.id
     return { user }
+  }
+
+  @Mutation(() => UserResponse)
+  async forgotUsername(
+    @Arg('email') email: string,
+    @Arg('password') password: string,
+    @Arg('newUsername') newUsername: string,
+  ): Promise<UserResponse> {
+    const isEmail = email.includes('@')
+    if (!isEmail) {
+      return { 
+        errors: [
+            { 
+              field: 'email',
+              message: 'invalid email',
+            },
+          ]
+        }
+    }
+    const user = await User.findOne({ where: { email: email }})
+    if (!user) {
+      return {
+        errors: [
+          {
+            field: 'email',
+            message: 'email does not exist'
+          }
+        ]
+      }
+    }
+    const validPassword = await argon2.verify(user!.password, password)
+    if (!validPassword) {
+      return {
+        errors: [
+          {
+            field: 'password',
+            message: 'incorrect password'
+          }
+        ]
+      }
+    }
+    await User.update(
+      { id: user.id },
+      { username: newUsername}
+    )
+    return { user }
+  }
+
+  @Mutation(() => Boolean)
+  async forgotPassword(
+    @Arg('usernameOrEmail') usernameOrEmail: string,
+    @Arg('oldPassword') oldPassword: string,
+    @Arg('repeatNewPassword') repeatNewPassword: string,
+    @Arg('newPassword') newPassword: string,
+  ) {
+    const isEmail = usernameOrEmail.includes('@')
+    const user = await User.findOne( 
+      isEmail ?
+      { where: { email: usernameOrEmail }} :
+      { where: { username: usernameOrEmail }}
+    )
+    if (!user) return false  
+    const validPassword = await argon2.verify(user!.password, oldPassword)
+    if (!validPassword) return false
+    if (newPassword !== repeatNewPassword) return false
+    const response = await User.update(
+      { id: user!.id },
+      { password: newPassword},
+    )
+    if (!response) return false // need to test...
+    return true
+  }
+
+  @Mutation(() => Boolean)
+  logout(@Ctx() { req, res }: MyContext) {
+    return new Promise((resolve) =>
+      req.session.destroy((err) => {
+        res.clearCookie(COOKIE_NAME)
+        if (err) {
+          console.log(err)
+          resolve(false)
+          return;
+        }
+        resolve(true)
+      })
+    );
   }
 
 }

@@ -10,7 +10,7 @@ import { ObjectType, Field } from 'type-graphql'
 
 @ObjectType()
 @Entity()
-export class Client extends BaseEntity {
+export class Provider extends BaseEntity {
 
   @PrimaryGeneratedColumn()
   @Field(() => Number)
@@ -26,6 +26,6 @@ export class Client extends BaseEntity {
 
   @Field(() => String)
   @Column()
-  firstName: String
+  providerName!: String
 
 }
