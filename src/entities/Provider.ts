@@ -1,35 +1,45 @@
 import {
   Entity,
-  BaseEntity,
-  PrimaryGeneratedColumn, 
-  Column, 
+  Column,
   CreateDateColumn,
+  PrimaryGeneratedColumn,
   UpdateDateColumn,
+  BaseEntity,
 } from 'typeorm'
-import { ObjectType, Field } from 'type-graphql'
+import { ObjectType, Field, ID } from 'type-graphql'
 
-@ObjectType()
+@ObjectType({
+  description: 'The provider model'
+})
 @Entity()
 export class Provider extends BaseEntity {
 
+  @Field(() => ID)
   @PrimaryGeneratedColumn()
-  @Field(() => Number)
   id!: number
 
-  @Field(() => Number)
-  @Column()
-  userId!: number
-
-  @Field(() => String)
+  @Field(() => Date)
   @CreateDateColumn()
   createdAt = new Date()
 
-  @Field(() => String)
+  @Field(() => Date)
   @UpdateDateColumn()
   updatedAt = new Date()
 
   @Field(() => String)
+  @Column({ unique: true, nullable: true })
+  email!: string
+
+  @Field(() => String)
+  @Column({ unique: true })
+  username!: string
+
+  //hash password using argon2
   @Column()
-  providerName!: String
+  password!: string
+
+  @Field(() => String)
+  @Column()
+  name!: String
 
 }

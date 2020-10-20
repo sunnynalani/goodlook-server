@@ -1,54 +1,83 @@
-/**
-mport { 
+import { 
   Resolver, 
   Mutation, 
-  FieldResolver, 
   Arg, 
   Ctx, 
   Query,
-  Root,
 } from 'type-graphql'
 import { UsernamePasswordInput } from '../entities/types/UsernamePasswordInput'
 import { validateRegisterInputs } from '../utils/'
 import { MyContext } from '../types'
-import { User, Client, Provider } from '../entities'
+import { Provider } from '../entities'
 import argon2 from 'argon2'
 import { COOKIE_NAME } from '../constants'
 import { getConnection } from 'typeorm'
-import { UserResponse, UserType } from './../entities/types/'
+import { ProviderResponse, ProvidersResponse } from './../entities/types/'
 
-@Resolver(User)
-export class UserResolver {
+@Resolver(Provider)
+export class ProviderResolver {
 
-  @Query(() => User, {nullable: true})
-  async self(@Ctx() { req }: MyContext) {
-    if (!req.session.userId) return null
-    return await User.findOne(parseInt(req.session.userId))
+  @Query(() => Provider, {nullable: true})
+  async selfProvider(@Ctx() { req }: MyContext) {
+    if (!req.session.providerId) return null
+    return await Provider.findOne(parseInt(req.session.providerId))
   }
 
-  @FieldResolver(() => String)
-  email(@Root() user: User, @Ctx() { req }: MyContext) {
-    if (req.session.userId === user.id) {
-      return user.email
+  @Query(() => ProviderResponse)
+  async provider(@Arg('providerId') providerId: number) {
+    let provider
+    provider = Provider.findOne(providerId)
+    if (!provider) {
+      return {
+        errors: [
+          {
+            field: 'id',
+            message: 'this id does not exist'
+          }
+        ]
+      }
     }
-    return ''
+    return { provider }
   }
 
-  @Mutation(() => UserResponse)
-  async register(
+  @Query(() => ProvidersResponse)
+  async providers(): Promise<ProvidersResponse> {
+    let providers
+    try {
+      const result = await getConnection()
+        .createQueryBuilder()
+        //.orderBy('user.id', dto.order) todo sort
+        //.skip(rowsPerPage) todo pagination
+        //.take()
+        .getMany()
+      providers = result
+    } catch (err) {
+      return {
+        errors: [
+          {
+            field: 'NaN',
+            message: 'query failed'
+          }
+        ]
+      }
+    }
+    return { providers }
+  }
+
+  @Mutation(() => ProviderResponse)
+  async registerProvider(
     @Arg('input') input: UsernamePasswordInput,
-    @Arg('userType') userType: UserType,
     @Ctx() { req }: MyContext
-    ): Promise<UserResponse> {
+    ): Promise<ProviderResponse> {
     const errors = validateRegisterInputs(input)
     if (errors) return { errors }
-    let user
+    let provider
     const hashedPassword = await argon2.hash(input.password)
     try {
       const result = await getConnection()
         .createQueryBuilder()
         .insert()
-        .into(User)
+        .into(Provider)
         .values({
           username: input.username,
           password: hashedPassword,
@@ -56,7 +85,7 @@ export class UserResolver {
         })
         .returning('*')
         .execute()
-      user = result.raw[0]
+        provider = result.raw[0]
     } catch (err) {
       if (err.code === '23505') { //duplicate username...
         return {
@@ -69,26 +98,23 @@ export class UserResolver {
         }
       }
     }
-    if (userType === UserType.CLIENT) {
-      
-    }
-    req.session.userId = user.id
-    return { user }
+    req.session.providerId = provider.id
+    return { provider }
   }
 
-  @Mutation(() => UserResponse)
-  async login(
+  @Mutation(() => ProviderResponse)
+  async loginProvider(
     @Arg('usernameOrEmail') usernameOrEmail: string,
     @Arg('password') password: string,
     @Ctx() { req }: MyContext
-  ): Promise<UserResponse> {
+  ): Promise<ProviderResponse> {
     const isEmail = usernameOrEmail.includes('@')
-    const user = await User.findOne(
+    const provider = await Provider.findOne(
       isEmail ?
       { where: { email: usernameOrEmail }} :
       { where: { username: usernameOrEmail }}
     )
-    if (!user && isEmail) {
+    if (!provider && isEmail) {
       return {
         errors: [
           { 
@@ -99,7 +125,7 @@ export class UserResolver {
       }
     }
   
-    if (!user && !isEmail) {
+    if (!provider && !isEmail) {
       return {
         errors: [
           {
@@ -110,7 +136,7 @@ export class UserResolver {
       }
     }
   
-    const validPassword = await argon2.verify(user!.password, password)
+    const validPassword = await argon2.verify(provider!.password, password)
     if (!validPassword) {
       return {
         errors: [
@@ -121,16 +147,16 @@ export class UserResolver {
         ]
       }
     }
-    req.session.userId = user!.id
-    return { user }
+    req.session.providerId = provider!.id
+    return { provider }
   }
 
-  @Mutation(() => UserResponse)
-  async forgotUsername(
+  @Mutation(() => ProviderResponse)
+  async forgotProviderUsername(
     @Arg('email') email: string,
     @Arg('password') password: string,
     @Arg('newUsername') newUsername: string,
-  ): Promise<UserResponse> {
+  ): Promise<ProviderResponse> {
     const isEmail = email.includes('@')
     if (!isEmail) {
       return { 
@@ -142,8 +168,8 @@ export class UserResolver {
           ]
         }
     }
-    const user = await User.findOne({ where: { email: email }})
-    if (!user) {
+    const provider = await Provider.findOne({ where: { email: email }})
+    if (!provider) {
       return {
         errors: [
           {
@@ -153,7 +179,7 @@ export class UserResolver {
         ]
       }
     }
-    const validPassword = await argon2.verify(user!.password, password)
+    const validPassword = await argon2.verify(provider!.password, password)
     if (!validPassword) {
       return {
         errors: [
@@ -164,32 +190,32 @@ export class UserResolver {
         ]
       }
     }
-    await User.update(
-      { id: user.id },
+    await Provider.update(
+      { id: provider.id },
       { username: newUsername}
     )
-    return { user }
+    return { provider }
   }
 
   @Mutation(() => Boolean)
-  async forgotPassword(
+  async forgotProviderPassword(
     @Arg('usernameOrEmail') usernameOrEmail: string,
     @Arg('oldPassword') oldPassword: string,
     @Arg('repeatNewPassword') repeatNewPassword: string,
     @Arg('newPassword') newPassword: string,
   ) {
     const isEmail = usernameOrEmail.includes('@')
-    const user = await User.findOne( 
+    const provider = await Provider.findOne( 
       isEmail ?
       { where: { email: usernameOrEmail }} :
       { where: { username: usernameOrEmail }}
     )
-    if (!user) return false  
-    const validPassword = await argon2.verify(user!.password, oldPassword)
+    if (!provider) return false  
+    const validPassword = await argon2.verify(provider!.password, oldPassword)
     if (!validPassword) return false
     if (newPassword !== repeatNewPassword) return false
-    const response = await User.update(
-      { id: user!.id },
+    const response = await Provider.update(
+      { id: provider!.id },
       { password: newPassword},
     )
     if (!response) return false // need to test...
@@ -197,7 +223,7 @@ export class UserResolver {
   }
 
   @Mutation(() => Boolean)
-  logout(@Ctx() { req, res }: MyContext) {
+  logoutProvider(@Ctx() { req, res }: MyContext) {
     return new Promise((resolve) =>
       req.session.destroy((err) => {
         res.clearCookie(COOKIE_NAME)
@@ -212,5 +238,3 @@ export class UserResolver {
   }
 
 }
-
-*/

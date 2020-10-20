@@ -1,6 +1,9 @@
 import 'reflect-metadata'
 import { __prod__ } from './constants'
-import * as entities from './entities'
+import {
+  Client,
+  Provider,
+} from './entities'
 import express from 'express'
 import { ApolloServer } from 'apollo-server-express'
 import { buildSchema } from 'type-graphql'
@@ -12,7 +15,8 @@ import path from 'path'
 import { createConnection } from 'typeorm'
 import { 
   TestResolver, 
-  UserResolver,
+  ClientResolver,
+  ProviderResolver,
 } from './resolvers'
 
 
@@ -28,7 +32,7 @@ const main = async () => {
     logging: true,
     synchronize: true,
     migrations: [path.join(__dirname, "./migrations/*")],
-    entities: Object.values(entities),
+    entities: [ Client, Provider ],
   })
 
   await connection.runMigrations()
@@ -69,7 +73,11 @@ const main = async () => {
 
   const apolloServer = new ApolloServer({
     schema: await buildSchema({
-      resolvers: [TestResolver, UserResolver],
+      resolvers: [
+        TestResolver,
+        ClientResolver,
+        ProviderResolver,
+      ],
       validate: false
     }),
     context: ({ req, res }) => ({ req, res, redis })

@@ -1,4 +1,4 @@
-import { UsernamePasswordInput } from "../types/UsernamePasswordInput"
+import { UsernamePasswordInput } from "../entities/types/UsernamePasswordInput"
 
 export const validateRegisterInputs = (input: UsernamePasswordInput) => {
   const aggeragateErrors = []
