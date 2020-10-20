@@ -1,2 +1,4 @@
 export { TestResolver } from './test'
-export { UserResolver } from './user'
+//export { UserResolver } from './user'
+export { ClientResolver } from './client'
+export { ProviderResolver } from './provider'

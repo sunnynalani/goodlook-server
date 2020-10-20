@@ -1,54 +1,83 @@
-/**
-mport { 
+import { 
   Resolver, 
   Mutation, 
-  FieldResolver, 
   Arg, 
   Ctx, 
   Query,
-  Root,
 } from 'type-graphql'
 import { UsernamePasswordInput } from '../entities/types/UsernamePasswordInput'
 import { validateRegisterInputs } from '../utils/'
 import { MyContext } from '../types'
-import { User, Client, Provider } from '../entities'
+import { Client } from '../entities'
 import argon2 from 'argon2'
 import { COOKIE_NAME } from '../constants'
 import { getConnection } from 'typeorm'
-import { UserResponse, UserType } from './../entities/types/'
+import { ClientResponse, ClientsResponse } from './../entities/types/'
 
-@Resolver(User)
-export class UserResolver {
+@Resolver(Client)
+export class ClientResolver {
 
-  @Query(() => User, {nullable: true})
-  async self(@Ctx() { req }: MyContext) {
-    if (!req.session.userId) return null
-    return await User.findOne(parseInt(req.session.userId))
+  @Query(() => Client, {nullable: true})
+  async selfClient(@Ctx() { req }: MyContext) {
+    if (!req.session.clientId) return null
+    return await Client.findOne(parseInt(req.session.clientId))
   }
 
-  @FieldResolver(() => String)
-  email(@Root() user: User, @Ctx() { req }: MyContext) {
-    if (req.session.userId === user.id) {
-      return user.email
+  @Query(() => ClientResponse)
+  async client(@Arg('clientId') clientId: number) {
+    let client
+    client = Client.findOne(clientId)
+    if (!client) {
+      return {
+        errors: [
+          {
+            field: 'id',
+            message: 'this id does not exist'
+          }
+        ]
+      }
     }
-    return ''
+    return { client }
   }
 
-  @Mutation(() => UserResponse)
-  async register(
+  @Query(() => ClientsResponse)
+  async clients(): Promise<ClientsResponse> {
+    let clients
+    try {
+      const result = await getConnection()
+        .createQueryBuilder()
+        //.orderBy('user.id', dto.order) todo sort
+        //.skip(rowsPerPage) todo pagination
+        //.take()
+        .getMany()
+      clients = result
+    } catch (err) {
+      return {
+        errors: [
+          {
+            field: 'NaN',
+            message: 'query failed'
+          }
+        ]
+      }
+    }
+    return { clients }
+  }
+
+  @Mutation(() => ClientResponse)
+  async registerClient(
     @Arg('input') input: UsernamePasswordInput,
-    @Arg('userType') userType: UserType,
     @Ctx() { req }: MyContext
-    ): Promise<UserResponse> {
+    ): Promise<ClientResponse> {
     const errors = validateRegisterInputs(input)
     if (errors) return { errors }
-    let user
+    let client
     const hashedPassword = await argon2.hash(input.password)
     try {
       const result = await getConnection()
         .createQueryBuilder()
         .insert()
-        .into(User)
+        .into(Client)
         .values({
           username: input.username,
           password: hashedPassword,
@@ -56,7 +85,7 @@ export class UserResolver {
         })
         .returning('*')
         .execute()
-      user = result.raw[0]
+        client = result.raw[0]
     } catch (err) {
       if (err.code === '23505') { //duplicate username...
         return {
@@ -69,26 +98,23 @@ export class UserResolver {
         }
       }
     }
-    if (userType === UserType.CLIENT) {
-      
-    }
-    req.session.userId = user.id
-    return { user }
+    req.session.clientId = client.id
+    return { client }
   }
 
-  @Mutation(() => UserResponse)
-  async login(
+  @Mutation(() => ClientResponse)
+  async loginClient(
     @Arg('usernameOrEmail') usernameOrEmail: string,
     @Arg('password') password: string,
     @Ctx() { req }: MyContext
-  ): Promise<UserResponse> {
+  ): Promise<ClientResponse> {
     const isEmail = usernameOrEmail.includes('@')
-    const user = await User.findOne(
+    const client = await Client.findOne(
       isEmail ?
       { where: { email: usernameOrEmail }} :
       { where: { username: usernameOrEmail }}
     )
-    if (!user && isEmail) {
+    if (!client && isEmail) {
       return {
         errors: [
           { 
@@ -99,7 +125,7 @@ export class UserResolver {
       }
     }
   
-    if (!user && !isEmail) {
+    if (!client && !isEmail) {
       return {
         errors: [
           {
@@ -110,7 +136,7 @@ export class UserResolver {
       }
     }
   
-    const validPassword = await argon2.verify(user!.password, password)
+    const validPassword = await argon2.verify(client!.password, password)
     if (!validPassword) {
       return {
         errors: [
@@ -121,16 +147,16 @@ export class UserResolver {
         ]
       }
     }
-    req.session.userId = user!.id
-    return { user }
+    req.session.clientId = client!.id
+    return { client }
   }
 
-  @Mutation(() => UserResponse)
-  async forgotUsername(
+  @Mutation(() => ClientResponse)
+  async forgotClientUsername(
     @Arg('email') email: string,
     @Arg('password') password: string,
     @Arg('newUsername') newUsername: string,
-  ): Promise<UserResponse> {
+  ): Promise<ClientResponse> {
     const isEmail = email.includes('@')
     if (!isEmail) {
       return { 
@@ -142,8 +168,8 @@ export class UserResolver {
           ]
         }
     }
-    const user = await User.findOne({ where: { email: email }})
-    if (!user) {
+    const client = await Client.findOne({ where: { email: email }})
+    if (!client) {
       return {
         errors: [
           {
@@ -153,7 +179,7 @@ export class UserResolver {
         ]
       }
     }
-    const validPassword = await argon2.verify(user!.password, password)
+    const validPassword = await argon2.verify(client!.password, password)
     if (!validPassword) {
       return {
         errors: [
@@ -164,32 +190,32 @@ export class UserResolver {
         ]
       }
     }
-    await User.update(
-      { id: user.id },
+    await Client.update(
+      { id: client.id },
       { username: newUsername}
     )
-    return { user }
+    return { client }
   }
 
   @Mutation(() => Boolean)
-  async forgotPassword(
+  async forgotClientPassword(
     @Arg('usernameOrEmail') usernameOrEmail: string,
     @Arg('oldPassword') oldPassword: string,
     @Arg('repeatNewPassword') repeatNewPassword: string,
     @Arg('newPassword') newPassword: string,
   ) {
     const isEmail = usernameOrEmail.includes('@')
-    const user = await User.findOne( 
+    const client = await Client.findOne( 
       isEmail ?
       { where: { email: usernameOrEmail }} :
       { where: { username: usernameOrEmail }}
     )
-    if (!user) return false  
-    const validPassword = await argon2.verify(user!.password, oldPassword)
+    if (!client) return false  
+    const validPassword = await argon2.verify(client!.password, oldPassword)
     if (!validPassword) return false
     if (newPassword !== repeatNewPassword) return false
-    const response = await User.update(
-      { id: user!.id },
+    const response = await Client.update(
+      { id: client!.id },
       { password: newPassword},
     )
     if (!response) return false // need to test...
@@ -197,7 +223,7 @@ export class UserResolver {
   }
 
   @Mutation(() => Boolean)
-  logout(@Ctx() { req, res }: MyContext) {
+  logoutClient(@Ctx() { req, res }: MyContext) {
     return new Promise((resolve) =>
       req.session.destroy((err) => {
         res.clearCookie(COOKIE_NAME)
@@ -212,5 +238,3 @@ export class UserResolver {
   }
 
 }
-
-*/

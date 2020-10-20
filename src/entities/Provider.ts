@@ -6,15 +6,13 @@ import {
   UpdateDateColumn,
   BaseEntity,
 } from 'typeorm'
-import { _Entity } from './index'
-import { GenderType } from './types'
 import { ObjectType, Field, ID } from 'type-graphql'
 
 @ObjectType({
-  description: 'The client model'
+  description: 'The provider model'
 })
 @Entity()
-export class Client extends BaseEntity {
+export class Provider extends BaseEntity {
 
   @Field(() => ID)
   @PrimaryGeneratedColumn()
@@ -41,15 +39,7 @@ export class Client extends BaseEntity {
   password!: string
 
   @Field(() => String)
-  @Column({ nullable: true })
-  firstName: string
-
-  @Field(() => String)
-  @Column({ nullable: true })
-  lastName!: string
-
-  @Field(() => GenderType)
-  @Column({ nullable: true })
-  gender: GenderType
+  @Column()
+  name!: String
 
 }

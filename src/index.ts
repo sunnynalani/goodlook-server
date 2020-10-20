@@ -1,6 +1,9 @@
-import { MikroORM } from '@mikro-orm/core'
+import 'reflect-metadata'
 import { __prod__ } from './constants'
-import microConfig from './mikro-orm.config'
+import {
+  Client,
+  Provider,
+} from './entities'
 import express from 'express'
 import { ApolloServer } from 'apollo-server-express'
 import { buildSchema } from 'type-graphql'
@@ -8,20 +11,33 @@ import redis from 'redis'
 import session from 'express-session'
 import connectRedis from 'connect-redis'
 import dotenv from 'dotenv'
-import { MyContext } from './types'
+import path from 'path'
+import { createConnection } from 'typeorm'
 import { 
   TestResolver, 
-  UserResolver,
+  ClientResolver,
+  ProviderResolver,
 } from './resolvers'
+
 
 dotenv.config()
 
 const main = async () => {
   //connect to postgresdb--
-  const orm = await MikroORM.init(microConfig)
+  const connection = await createConnection({
+    type: 'postgres',
+    database: 'goodlook',
+    username: process.env.DB_USER,
+    password: process.env.DB_PASSWORD,
+    logging: true,
+    synchronize: true,
+    migrations: [path.join(__dirname, "./migrations/*")],
+    entities: [ Client, Provider ],
+  })
+
+  await connection.runMigrations()
 
   //migrate...
-  await orm.getMigrator().up()
 
   //Inital test for mikrorm
     //create test entity
@@ -38,7 +54,7 @@ const main = async () => {
 
   app.use(
     session({
-      name: 'qid',
+      name: 'token',
       store: new RedisStore({ 
         client: redisClient,
         disableTouch: true, //redis session lasts forever...
@@ -47,7 +63,7 @@ const main = async () => {
         maxAge: 1000 * 60 * 60 * 24 * 365, //cookie duration: 1 year
         httpOnly: true,
         sameSite: 'lax', //https://portswigger.net/web-security/csrf/samesite-cookies
-        secure: __prod__ // cookie in https
+        secure: __prod__ //cookie in https
       },
       saveUninitialized: false,
       secret: String(process.env.SESSION_SECRET),
@@ -57,10 +73,14 @@ const main = async () => {
 
   const apolloServer = new ApolloServer({
     schema: await buildSchema({
-      resolvers: [TestResolver, UserResolver],
+      resolvers: [
+        TestResolver,
+        ClientResolver,
+        ProviderResolver,
+      ],
       validate: false
     }),
-    context: ({ req, res }): MyContext => ({ em: orm.em, req, res })
+    context: ({ req, res }) => ({ req, res, redis })
   })
 
   apolloServer.applyMiddleware({ app })
