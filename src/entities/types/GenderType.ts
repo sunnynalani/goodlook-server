@@ -8,6 +8,6 @@ export enum GenderType {
 }
 
 registerEnumType(GenderType, {
-  name: "UserType",
-  description: "Type of User",
+  name: "GenderType",
+  description: "Gender of User",
 })

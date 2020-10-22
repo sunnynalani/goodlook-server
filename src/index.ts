@@ -7,11 +7,12 @@ import {
 import express from 'express'
 import { ApolloServer } from 'apollo-server-express'
 import { buildSchema } from 'type-graphql'
-import redis from 'redis'
+import Redis from 'ioredis'
 import session from 'express-session'
 import connectRedis from 'connect-redis'
 import dotenv from 'dotenv'
 import path from 'path'
+import cors from 'cors'
 import { createConnection } from 'typeorm'
 import { 
   TestResolver, 
@@ -29,9 +30,10 @@ const main = async () => {
     database: 'goodlook',
     username: process.env.DB_USER,
     password: process.env.DB_PASSWORD,
+    url: process.env.DATABASE_URL,
     logging: true,
     synchronize: true,
-    migrations: [path.join(__dirname, "./migrations/*")],
+    migrations: [path.join(__dirname, './migrations/*')],
     entities: [ Client, Provider ],
   })
 
@@ -50,20 +52,27 @@ const main = async () => {
   //create express
   const app = express()
   const RedisStore = connectRedis(session)
-  const redisClient = redis.createClient()
-
+  const redis = new Redis(process.env.REDIS_URL)
+  app.set('trust proxy', 1)
+  app.use(
+    cors({
+      origin: process.env.CORS_ORIGIN,
+      credentials: true,
+    })
+  )
   app.use(
     session({
       name: 'token',
       store: new RedisStore({ 
-        client: redisClient,
+        client: redis,
         disableTouch: true, //redis session lasts forever...
       }),
       cookie: {
         maxAge: 1000 * 60 * 60 * 24 * 365, //cookie duration: 1 year
         httpOnly: true,
         sameSite: 'lax', //https://portswigger.net/web-security/csrf/samesite-cookies
-        secure: __prod__ //cookie in https
+        secure: true, //cookie in https
+        domain: __prod__ ? ".blondpony.com" : undefined,
       },
       saveUninitialized: false,
       secret: String(process.env.SESSION_SECRET),
@@ -78,17 +87,27 @@ const main = async () => {
         ClientResolver,
         ProviderResolver,
       ],
-      validate: false
+      validate: false,
     }),
+    introspection: true,
+    playground: {
+      settings: {
+        'request.credentials': 'include',
+      }
+    },
     context: ({ req, res }) => ({ req, res, redis })
   })
 
-  apolloServer.applyMiddleware({ app })
+  apolloServer.applyMiddleware({ app,
+    cors: false,
+  })
 
-  app.listen(5000, () => {
+  app.listen(parseInt(process.env.PORT!), () => {
     console.log('server started on localhost:5000')
   })
 
 }
 
-main()
+main().catch((err) => {
+  console.error(err)
+})

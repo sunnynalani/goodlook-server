@@ -1,6 +1,7 @@
 #misc
 dist
 .env
+deploy.sh
 
 #node
 node_modules
