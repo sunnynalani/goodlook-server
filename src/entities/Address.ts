@@ -1,14 +1,8 @@
-import {
-  BaseEntity, 
-  Column, 
-  CreateDateColumn,
-  UpdateDateColumn,
-} from 'typeorm'
+import { BaseEntity, Column, CreateDateColumn, UpdateDateColumn } from 'typeorm'
 import { ObjectType, Field } from 'type-graphql'
 
 @ObjectType({ description: 'Address of the user' })
 export class Address extends BaseEntity {
-
   @Field(() => Number, { description: 'User of this address' })
   @Column()
   userId!: number

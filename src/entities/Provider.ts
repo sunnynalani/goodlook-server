@@ -9,11 +9,10 @@ import {
 import { ObjectType, Field, ID } from 'type-graphql'
 
 @ObjectType({
-  description: 'The provider model'
+  description: 'The provider model',
 })
 @Entity()
 export class Provider extends BaseEntity {
-
   @Field(() => ID)
   @PrimaryGeneratedColumn()
   id!: number
@@ -41,5 +40,4 @@ export class Provider extends BaseEntity {
   @Field(() => String)
   @Column()
   name!: String
-
 }

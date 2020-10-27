@@ -4,9 +4,7 @@ import { Column } from 'typeorm'
 
 @InterfaceType({ implements: Entity })
 export abstract class User extends Entity {
-
   @Field(() => String)
   @Column({ unique: true, nullable: true })
   email!: string
-
 }

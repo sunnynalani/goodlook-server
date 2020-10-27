@@ -1,9 +1,9 @@
 import { InterfaceType, Field, ID } from 'type-graphql'
-import { 
-  BaseEntity, 
-  CreateDateColumn, 
-  PrimaryGeneratedColumn, 
-  UpdateDateColumn 
+import {
+  BaseEntity,
+  CreateDateColumn,
+  PrimaryGeneratedColumn,
+  UpdateDateColumn,
 } from 'typeorm'
 
 /**
@@ -13,7 +13,6 @@ import {
 
 @InterfaceType()
 export abstract class Entity extends BaseEntity {
-
   @Field(() => ID)
   @PrimaryGeneratedColumn()
   id!: number
@@ -25,5 +24,4 @@ export abstract class Entity extends BaseEntity {
   @Field(() => Date)
   @UpdateDateColumn()
   updatedAt = new Date()
-
 }

@@ -11,11 +11,10 @@ import { GenderType } from './types'
 import { ObjectType, Field, ID } from 'type-graphql'
 
 @ObjectType({
-  description: 'The client model'
+  description: 'The client model',
 })
 @Entity()
 export class Client extends BaseEntity {
-
   @Field(() => ID)
   @PrimaryGeneratedColumn()
   id!: number
@@ -51,5 +50,4 @@ export class Client extends BaseEntity {
   @Field(() => GenderType)
   @Column({ nullable: true })
   gender: GenderType
-
 }

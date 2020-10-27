@@ -1,4 +1,4 @@
-import { registerEnumType } from "type-graphql"
+import { registerEnumType } from 'type-graphql'
 
 //i'm not to sure...
 export enum UserType {
@@ -7,6 +7,6 @@ export enum UserType {
 }
 
 registerEnumType(UserType, {
-  name: "UserType",
-  description: "Type of User",
+  name: 'UserType',
+  description: 'Type of User',
 })

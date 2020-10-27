@@ -1,10 +1,4 @@
-import { 
-  Resolver, 
-  Mutation, 
-  Arg, 
-  Ctx, 
-  Query,
-} from 'type-graphql'
+import { Resolver, Mutation, Arg, Ctx, Query } from 'type-graphql'
 import { UsernamePasswordInput } from '../entities/types/UsernamePasswordInput'
 import { validateRegisterInputs } from '../utils/'
 import { MyContext } from '../types'
@@ -16,8 +10,7 @@ import { ProviderResponse, ProvidersResponse } from './../entities/types/'
 
 @Resolver(Provider)
 export class ProviderResolver {
-
-  @Query(() => Provider, {nullable: true})
+  @Query(() => Provider, { nullable: true })
   async selfProvider(@Ctx() { req }: MyContext) {
     if (!req.session.providerId) return null
     return await Provider.findOne(parseInt(req.session.providerId))
@@ -32,9 +25,9 @@ export class ProviderResolver {
         errors: [
           {
             field: 'id',
-            message: 'this id does not exist'
-          }
-        ]
+            message: 'this id does not exist',
+          },
+        ],
       }
     }
     return { provider }
@@ -56,9 +49,9 @@ export class ProviderResolver {
         errors: [
           {
             field: 'NaN',
-            message: 'query failed'
-          }
-        ]
+            message: 'query failed',
+          },
+        ],
       }
     }
     return { providers }
@@ -68,7 +61,7 @@ export class ProviderResolver {
   async registerProvider(
     @Arg('input') input: UsernamePasswordInput,
     @Ctx() { req }: MyContext
-    ): Promise<ProviderResponse> {
+  ): Promise<ProviderResponse> {
     const errors = validateRegisterInputs(input)
     if (errors) return { errors }
     let provider
@@ -81,20 +74,21 @@ export class ProviderResolver {
         .values({
           username: input.username,
           password: hashedPassword,
-          email: input.email
+          email: input.email,
         })
         .returning('*')
         .execute()
-        provider = result.raw[0]
+      provider = result.raw[0]
     } catch (err) {
-      if (err.code === '23505') { //duplicate username...
+      if (err.code === '23505') {
+        //duplicate username...
         return {
           errors: [
             {
               field: 'username',
-              message: 'this username already exists'
+              message: 'this username already exists',
             },
-          ]
+          ],
         }
       }
     }
@@ -110,41 +104,41 @@ export class ProviderResolver {
   ): Promise<ProviderResponse> {
     const isEmail = usernameOrEmail.includes('@')
     const provider = await Provider.findOne(
-      isEmail ?
-      { where: { email: usernameOrEmail }} :
-      { where: { username: usernameOrEmail }}
+      isEmail
+        ? { where: { email: usernameOrEmail } }
+        : { where: { username: usernameOrEmail } }
     )
     if (!provider && isEmail) {
       return {
         errors: [
-          { 
+          {
             field: 'email',
             message: 'email does not exist',
-          }
-        ]
+          },
+        ],
       }
     }
-  
+
     if (!provider && !isEmail) {
       return {
         errors: [
           {
             field: 'username',
             message: 'username does not exist',
-          }
-        ]
+          },
+        ],
       }
     }
-  
+
     const validPassword = await argon2.verify(provider!.password, password)
     if (!validPassword) {
       return {
         errors: [
           {
             field: 'password',
-            message: 'incorrect password'
-          }
-        ]
+            message: 'incorrect password',
+          },
+        ],
       }
     }
     req.session.providerId = provider!.id
@@ -155,28 +149,28 @@ export class ProviderResolver {
   async forgotProviderUsername(
     @Arg('email') email: string,
     @Arg('password') password: string,
-    @Arg('newUsername') newUsername: string,
+    @Arg('newUsername') newUsername: string
   ): Promise<ProviderResponse> {
     const isEmail = email.includes('@')
     if (!isEmail) {
-      return { 
+      return {
         errors: [
-            { 
-              field: 'email',
-              message: 'invalid email',
-            },
-          ]
-        }
+          {
+            field: 'email',
+            message: 'invalid email',
+          },
+        ],
+      }
     }
-    const provider = await Provider.findOne({ where: { email: email }})
+    const provider = await Provider.findOne({ where: { email: email } })
     if (!provider) {
       return {
         errors: [
           {
             field: 'email',
-            message: 'email does not exist'
-          }
-        ]
+            message: 'email does not exist',
+          },
+        ],
       }
     }
     const validPassword = await argon2.verify(provider!.password, password)
@@ -185,15 +179,12 @@ export class ProviderResolver {
         errors: [
           {
             field: 'password',
-            message: 'incorrect password'
-          }
-        ]
+            message: 'incorrect password',
+          },
+        ],
       }
     }
-    await Provider.update(
-      { id: provider.id },
-      { username: newUsername}
-    )
+    await Provider.update({ id: provider.id }, { username: newUsername })
     return { provider }
   }
 
@@ -202,21 +193,21 @@ export class ProviderResolver {
     @Arg('usernameOrEmail') usernameOrEmail: string,
     @Arg('oldPassword') oldPassword: string,
     @Arg('repeatNewPassword') repeatNewPassword: string,
-    @Arg('newPassword') newPassword: string,
+    @Arg('newPassword') newPassword: string
   ) {
     const isEmail = usernameOrEmail.includes('@')
-    const provider = await Provider.findOne( 
-      isEmail ?
-      { where: { email: usernameOrEmail }} :
-      { where: { username: usernameOrEmail }}
+    const provider = await Provider.findOne(
+      isEmail
+        ? { where: { email: usernameOrEmail } }
+        : { where: { username: usernameOrEmail } }
     )
-    if (!provider) return false  
+    if (!provider) return false
     const validPassword = await argon2.verify(provider!.password, oldPassword)
     if (!validPassword) return false
     if (newPassword !== repeatNewPassword) return false
     const response = await Provider.update(
       { id: provider!.id },
-      { password: newPassword},
+      { password: newPassword }
     )
     if (!response) return false // need to test...
     return true
@@ -230,11 +221,10 @@ export class ProviderResolver {
         if (err) {
           console.log(err)
           resolve(false)
-          return;
+          return
         }
         resolve(true)
       })
-    );
+    )
   }
-
 }

@@ -1,10 +1,4 @@
-import { 
-  Resolver, 
-  Mutation, 
-  Arg, 
-  Ctx, 
-  Query,
-} from 'type-graphql'
+import { Resolver, Mutation, Arg, Ctx, Query } from 'type-graphql'
 import { UsernamePasswordInput } from '../entities/types/UsernamePasswordInput'
 import { validateRegisterInputs } from '../utils/'
 import { MyContext } from '../types'
@@ -16,8 +10,7 @@ import { ClientResponse, ClientsResponse } from './../entities/types/'
 
 @Resolver(Client)
 export class ClientResolver {
-
-  @Query(() => Client, {nullable: true})
+  @Query(() => Client, { nullable: true })
   async selfClient(@Ctx() { req }: MyContext) {
     if (!req.session.clientId) return null
     return await Client.findOne(parseInt(req.session.clientId))
@@ -32,9 +25,9 @@ export class ClientResolver {
         errors: [
           {
             field: 'id',
-            message: 'this id does not exist'
-          }
-        ]
+            message: 'this id does not exist',
+          },
+        ],
       }
     }
     return { client }
@@ -56,9 +49,9 @@ export class ClientResolver {
         errors: [
           {
             field: 'NaN',
-            message: 'query failed'
-          }
-        ]
+            message: 'query failed',
+          },
+        ],
       }
     }
     return { clients }
@@ -68,7 +61,7 @@ export class ClientResolver {
   async registerClient(
     @Arg('input') input: UsernamePasswordInput,
     @Ctx() { req }: MyContext
-    ): Promise<ClientResponse> {
+  ): Promise<ClientResponse> {
     const errors = validateRegisterInputs(input)
     if (errors) return { errors }
     let client
@@ -81,20 +74,21 @@ export class ClientResolver {
         .values({
           username: input.username,
           password: hashedPassword,
-          email: input.email
+          email: input.email,
         })
         .returning('*')
         .execute()
-        client = result.raw[0]
+      client = result.raw[0]
     } catch (err) {
-      if (err.code === '23505') { //duplicate username...
+      if (err.code === '23505') {
+        //duplicate username...
         return {
           errors: [
             {
               field: 'username',
-              message: 'this username already exists'
+              message: 'this username already exists',
             },
-          ]
+          ],
         }
       }
     }
@@ -110,41 +104,41 @@ export class ClientResolver {
   ): Promise<ClientResponse> {
     const isEmail = usernameOrEmail.includes('@')
     const client = await Client.findOne(
-      isEmail ?
-      { where: { email: usernameOrEmail }} :
-      { where: { username: usernameOrEmail }}
+      isEmail
+        ? { where: { email: usernameOrEmail } }
+        : { where: { username: usernameOrEmail } }
     )
     if (!client && isEmail) {
       return {
         errors: [
-          { 
+          {
             field: 'email',
             message: 'email does not exist',
-          }
-        ]
+          },
+        ],
       }
     }
-  
+
     if (!client && !isEmail) {
       return {
         errors: [
           {
             field: 'username',
             message: 'username does not exist',
-          }
-        ]
+          },
+        ],
       }
     }
-  
+
     const validPassword = await argon2.verify(client!.password, password)
     if (!validPassword) {
       return {
         errors: [
           {
             field: 'password',
-            message: 'incorrect password'
-          }
-        ]
+            message: 'incorrect password',
+          },
+        ],
       }
     }
     req.session.clientId = client!.id
@@ -155,28 +149,28 @@ export class ClientResolver {
   async forgotClientUsername(
     @Arg('email') email: string,
     @Arg('password') password: string,
-    @Arg('newUsername') newUsername: string,
+    @Arg('newUsername') newUsername: string
   ): Promise<ClientResponse> {
     const isEmail = email.includes('@')
     if (!isEmail) {
-      return { 
+      return {
         errors: [
-            { 
-              field: 'email',
-              message: 'invalid email',
-            },
-          ]
-        }
+          {
+            field: 'email',
+            message: 'invalid email',
+          },
+        ],
+      }
     }
-    const client = await Client.findOne({ where: { email: email }})
+    const client = await Client.findOne({ where: { email: email } })
     if (!client) {
       return {
         errors: [
           {
             field: 'email',
-            message: 'email does not exist'
-          }
-        ]
+            message: 'email does not exist',
+          },
+        ],
       }
     }
     const validPassword = await argon2.verify(client!.password, password)
@@ -185,15 +179,12 @@ export class ClientResolver {
         errors: [
           {
             field: 'password',
-            message: 'incorrect password'
-          }
-        ]
+            message: 'incorrect password',
+          },
+        ],
       }
     }
-    await Client.update(
-      { id: client.id },
-      { username: newUsername}
-    )
+    await Client.update({ id: client.id }, { username: newUsername })
     return { client }
   }
 
@@ -202,21 +193,21 @@ export class ClientResolver {
     @Arg('usernameOrEmail') usernameOrEmail: string,
     @Arg('oldPassword') oldPassword: string,
     @Arg('repeatNewPassword') repeatNewPassword: string,
-    @Arg('newPassword') newPassword: string,
+    @Arg('newPassword') newPassword: string
   ) {
     const isEmail = usernameOrEmail.includes('@')
-    const client = await Client.findOne( 
-      isEmail ?
-      { where: { email: usernameOrEmail }} :
-      { where: { username: usernameOrEmail }}
+    const client = await Client.findOne(
+      isEmail
+        ? { where: { email: usernameOrEmail } }
+        : { where: { username: usernameOrEmail } }
     )
-    if (!client) return false  
+    if (!client) return false
     const validPassword = await argon2.verify(client!.password, oldPassword)
     if (!validPassword) return false
     if (newPassword !== repeatNewPassword) return false
     const response = await Client.update(
       { id: client!.id },
-      { password: newPassword},
+      { password: newPassword }
     )
     if (!response) return false // need to test...
     return true
@@ -230,11 +221,10 @@ export class ClientResolver {
         if (err) {
           console.log(err)
           resolve(false)
-          return;
+          return
         }
         resolve(true)
       })
-    );
+    )
   }
-
 }
