@@ -6,7 +6,12 @@ import { Provider } from '../entities'
 import argon2 from 'argon2'
 import { COOKIE_NAME } from '../constants'
 import { getConnection } from 'typeorm'
-import { ProviderResponse, ProvidersResponse } from './../entities/types/'
+import {
+  ProviderResponse,
+  ProvidersResponse,
+  ProviderInput,
+} from '../entities/Provider'
+import { Address, AddressInput } from '../entities/Address'
 
 @Resolver(Provider)
 export class ProviderResolver {
@@ -60,25 +65,30 @@ export class ProviderResolver {
   @Mutation(() => ProviderResponse)
   async registerProvider(
     @Arg('input') input: UsernamePasswordInput,
+    @Arg('addressInput') addressInput: AddressInput,
+    @Arg('providerInput') providerInput: ProviderInput,
     @Ctx() { req }: MyContext
   ): Promise<ProviderResponse> {
     const errors = validateRegisterInputs(input)
     if (errors) return { errors }
-    let provider
+    let result
     const hashedPassword = await argon2.hash(input.password)
     try {
-      const result = await getConnection()
-        .createQueryBuilder()
-        .insert()
-        .into(Provider)
-        .values({
-          username: input.username,
-          password: hashedPassword,
-          email: input.email,
-        })
-        .returning('*')
-        .execute()
-      provider = result.raw[0]
+      const connection = await getConnection()
+      const address = new Address() //i'll fix this mess later...
+      address.city = addressInput.city
+      address.country = addressInput.country
+      address.state = addressInput.state
+      address.street = addressInput.street
+      address.zipcode = addressInput.zipcode
+      await connection.manager.save(address)
+      const provider = new Provider()
+      provider.address = address
+      provider.name = providerInput.name //temp
+      provider.username = input.username
+      provider.password = hashedPassword
+      provider.email = input.email
+      result = await connection.manager.save(provider)
     } catch (err) {
       if (err.code === '23505') {
         //duplicate username...
@@ -92,8 +102,8 @@ export class ProviderResolver {
         }
       }
     }
-    req.session.providerId = provider.id
-    return { provider }
+    req.session.providerId = result && result.id
+    return { provider: result }
   }
 
   @Mutation(() => ProviderResponse)

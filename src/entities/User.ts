@@ -1,10 +1,28 @@
-import { Entity } from './Entity'
-import { InterfaceType, Field } from 'type-graphql'
-import { Column } from 'typeorm'
+// import { Field, ID } from 'type-graphql'
+// import {
+//   Column,
+//   CreateDateColumn,
+//   PrimaryGeneratedColumn,
+// } from 'typeorm'
 
-@InterfaceType({ implements: Entity })
-export abstract class User extends Entity {
-  @Field(() => String)
-  @Column({ unique: true, nullable: true })
-  email!: string
-}
+// export abstract class User {
+
+//   @PrimaryGeneratedColumn()
+//   id!: number
+
+//   @CreateDateColumn()
+//   createdAt: Date
+
+//   @CreateDateColumn()
+//   updatedAt: Date
+
+//   @Column({ unique: true })
+//   username!: string
+
+//   @Column()
+//   password!: string
+
+//   @Column({ unique: true, nullable: true })
+//   email!: string
+
+// }

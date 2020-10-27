@@ -1,5 +1,3 @@
-export { User } from './User'
-export { Client } from './Client'
-export { Entity as _Entity } from './Entity'
-export { Provider } from './Provider'
-export { Address } from './Address'
+export { Client } from './Client/Client'
+export { Provider } from './Provider/Provider'
+export { Address } from './Address/Address'

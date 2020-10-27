@@ -1,6 +1,6 @@
 import { Field, ObjectType } from 'type-graphql'
 import { Client } from '..'
-import { FieldError } from './FieldError'
+import { FieldError } from '../types/FieldError'
 
 @ObjectType()
 export class ClientResponse {

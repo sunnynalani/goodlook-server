@@ -6,7 +6,11 @@ import { Client } from '../entities'
 import argon2 from 'argon2'
 import { COOKIE_NAME } from '../constants'
 import { getConnection } from 'typeorm'
-import { ClientResponse, ClientsResponse } from './../entities/types/'
+import {
+  ClientsResponse,
+  ClientResponse,
+  ClientInput,
+} from '../entities/Client'
 
 @Resolver(Client)
 export class ClientResolver {
@@ -129,7 +133,6 @@ export class ClientResolver {
         ],
       }
     }
-
     const validPassword = await argon2.verify(client!.password, password)
     if (!validPassword) {
       return {
@@ -142,6 +145,43 @@ export class ClientResolver {
       }
     }
     req.session.clientId = client!.id
+    return { client }
+  }
+
+  @Mutation(() => ClientResponse)
+  async updateClient(
+    @Arg('clientId') clientId: number,
+    @Arg('input') input: ClientInput
+  ): Promise<ClientResponse> {
+    let client
+    try {
+      const result = await getConnection()
+        .createQueryBuilder()
+        .update(Client)
+        .set({
+          createdAt: input.createdAt,
+          updatedAt: input.updatedAt,
+          firstName: input.firstName,
+          lastName: input.lastName,
+          gender: input.gender,
+        })
+        .where('id = :id', { id: clientId })
+        .returning('*')
+        .execute()
+      client = result.raw[0]
+    } catch (err) {
+      if (err.code === '23505') {
+        //duplicate username...
+        return {
+          errors: [
+            {
+              field: err.code,
+              message: 'query failed',
+            },
+          ],
+        }
+      }
+    }
     return { client }
   }
 
