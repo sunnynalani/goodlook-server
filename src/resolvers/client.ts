@@ -158,13 +158,7 @@ export class ClientResolver {
       const result = await getConnection()
         .createQueryBuilder()
         .update(Client)
-        .set({
-          createdAt: input.createdAt,
-          updatedAt: input.updatedAt,
-          firstName: input.firstName,
-          lastName: input.lastName,
-          gender: input.gender,
-        })
+        .set(input)
         .where('id = :id', { id: clientId })
         .returning('*')
         .execute()

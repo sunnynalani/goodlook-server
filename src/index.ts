@@ -1,6 +1,6 @@
 import 'reflect-metadata'
 import { __prod__ } from './constants'
-import { Client, Provider, Address } from './entities'
+import { Client, Provider, ProviderAttributes } from './entities'
 import express from 'express'
 import { ApolloServer } from 'apollo-server-express'
 import { buildSchema } from 'type-graphql'
@@ -25,12 +25,10 @@ const main = async () => {
     logging: true,
     synchronize: true,
     migrations: [path.join(__dirname, './migrations/*')],
-    entities: [Client, Provider, Address],
+    entities: [Client, Provider, ProviderAttributes],
   })
 
-  console.log('test')
-
-  //await connection.dropDatabase() //drop for testing
+  await connection.dropDatabase() //drop for testing
   await connection.runMigrations()
 
   //migrate...
@@ -91,7 +89,7 @@ const main = async () => {
   })
 
   app.listen(parseInt(process.env.PORT!), () => {
-    console.log('server started on localhost:5000')
+    console.log('server started on localhost:8080')
   })
 }
 

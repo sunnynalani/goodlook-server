@@ -11,20 +11,38 @@ import {
   ProvidersResponse,
   ProviderInput,
 } from '../entities/Provider'
-import { Address, AddressInput } from '../entities/Address'
+import {
+  AttributesInput,
+  ProviderAttributes,
+} from '../entities/ProviderAttributes'
 
 @Resolver(Provider)
 export class ProviderResolver {
   @Query(() => Provider, { nullable: true })
   async selfProvider(@Ctx() { req }: MyContext) {
     if (!req.session.providerId) return null
-    return await Provider.findOne(parseInt(req.session.providerId))
+    return await getConnection()
+      .getRepository(Provider)
+      .findOne({
+        where: {
+          id: parseInt(req.session.providerId),
+        },
+        relations: ['attributes'],
+      })
   }
 
   @Query(() => ProviderResponse)
   async provider(@Arg('providerId') providerId: number) {
     let provider
-    provider = Provider.findOne(providerId)
+    //provider = Provider.findOne(providerId)
+    provider = await getConnection()
+      .getRepository(Provider)
+      .findOne({
+        where: {
+          id: providerId,
+        },
+        relations: ['attributes'],
+      })
     if (!provider) {
       return {
         errors: [
@@ -43,11 +61,8 @@ export class ProviderResolver {
     let providers
     try {
       const result = await getConnection()
-        .createQueryBuilder()
-        //.orderBy('user.id', dto.order) todo sort
-        //.skip(rowsPerPage) todo pagination
-        //.take()
-        .getMany()
+        .getRepository(Provider)
+        .find({ relations: ['attributes'] })
       providers = result
     } catch (err) {
       return {
@@ -65,30 +80,24 @@ export class ProviderResolver {
   @Mutation(() => ProviderResponse)
   async registerProvider(
     @Arg('input') input: UsernamePasswordInput,
-    @Arg('addressInput') addressInput: AddressInput,
+    @Arg('attributesInput') attributesInput: AttributesInput,
     @Arg('providerInput') providerInput: ProviderInput,
     @Ctx() { req }: MyContext
   ): Promise<ProviderResponse> {
     const errors = validateRegisterInputs(input)
     if (errors) return { errors }
-    let result
+    let provider
     const hashedPassword = await argon2.hash(input.password)
     try {
-      const connection = await getConnection()
-      const address = new Address() //i'll fix this mess later...
-      address.city = addressInput.city
-      address.country = addressInput.country
-      address.state = addressInput.state
-      address.street = addressInput.street
-      address.zipcode = addressInput.zipcode
-      await connection.manager.save(address)
-      const provider = new Provider()
-      provider.address = address
-      provider.name = providerInput.name //temp
-      provider.username = input.username
-      provider.password = hashedPassword
-      provider.email = input.email
-      result = await connection.manager.save(provider)
+      const attributes = await ProviderAttributes.create(attributesInput).save()
+      provider = await Provider.create({
+        email: input.email,
+        username: input.username,
+        password: hashedPassword,
+        ...providerInput,
+      }).save()
+      provider.attributes = attributes
+      await provider.save()
     } catch (err) {
       if (err.code === '23505') {
         //duplicate username...
@@ -102,8 +111,8 @@ export class ProviderResolver {
         }
       }
     }
-    req.session.providerId = result && result.id
-    return { provider: result }
+    req.session.providerId = provider!.id
+    return { provider }
   }
 
   @Mutation(() => ProviderResponse)

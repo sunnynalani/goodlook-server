@@ -2,12 +2,21 @@ import { InputType, Field } from 'type-graphql'
 
 @InputType()
 export class ProviderInput {
-  @Field(() => Date)
-  createdAt = new Date()
+  @Field(() => String, { nullable: true })
+  name?: String
 
-  @Field(() => Date)
-  updatedAt = new Date()
+  @Field(() => String, { nullable: true })
+  country?: String
 
-  @Field(() => String)
-  name!: String
+  @Field(() => String, { nullable: true })
+  state?: String
+
+  @Field(() => String, { nullable: true })
+  city?: String
+
+  @Field(() => String, { nullable: true })
+  street?: String
+
+  @Field(() => Number, { nullable: true })
+  zipcode?: number
 }

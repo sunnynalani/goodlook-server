@@ -7,7 +7,7 @@ import {
   BaseEntity,
 } from 'typeorm'
 import { GenderType } from '../types'
-import { ObjectType, Field, ID } from 'type-graphql'
+import { ObjectType, Field, ID, Int } from 'type-graphql'
 
 @ObjectType({
   description: 'The client model',
@@ -18,35 +18,39 @@ export class Client extends BaseEntity {
   @PrimaryGeneratedColumn()
   id!: number
 
-  @Field(() => Date)
+  @Field(() => Date, { nullable: true })
   @CreateDateColumn()
   createdAt = new Date()
 
-  @Field(() => Date)
+  @Field(() => Date, { nullable: true })
   @UpdateDateColumn()
   updatedAt = new Date()
 
   @Field(() => String)
   @Column({ unique: true, nullable: true })
-  email!: string
+  email!: String
 
   @Field(() => String)
   @Column({ unique: true })
-  username!: string
+  username!: String
 
   //hash password using argon2
   @Column()
   password!: string
 
-  @Field(() => String)
-  @Column({ nullable: true })
-  firstName: string
+  @Field(() => String, { nullable: true })
+  @Column({ nullable: true, default: null })
+  firstName: String
 
-  @Field(() => String)
-  @Column({ nullable: true })
-  lastName!: string
+  @Field(() => String, { nullable: true })
+  @Column({ nullable: true, default: null })
+  lastName!: String
 
-  @Field(() => GenderType)
-  @Column({ nullable: true })
+  @Field(() => Int, { nullable: true })
+  @Column({ default: 0 })
+  reviewCount: Number
+
+  @Field(() => GenderType, { nullable: true })
+  @Column({ nullable: true, default: null })
   gender: GenderType
 }

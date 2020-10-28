@@ -3,17 +3,11 @@ import { GenderType } from '../types'
 
 @InputType()
 export class ClientInput {
-  @Field(() => Date, { nullable: true })
-  createdAt? = new Date()
-
-  @Field(() => Date, { nullable: true })
-  updatedAt? = new Date()
+  @Field(() => String, { nullable: true })
+  firstName?: String
 
   @Field(() => String, { nullable: true })
-  firstName?: string
-
-  @Field(() => String, { nullable: true })
-  lastName?: string
+  lastName?: String
 
   @Field(() => GenderType, { nullable: true })
   gender?: GenderType
