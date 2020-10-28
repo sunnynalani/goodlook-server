@@ -86,18 +86,18 @@ export class ProviderResolver {
   ): Promise<ProviderResponse> {
     const errors = validateRegisterInputs(input)
     if (errors) return { errors }
-    let provider
+    let provider: any
     const hashedPassword = await argon2.hash(input.password)
     try {
       const attributes = await ProviderAttributes.create(attributesInput).save()
-      provider = await Provider.create({
+      const result = await Provider.create({
         email: input.email,
         username: input.username,
         password: hashedPassword,
         ...providerInput,
       }).save()
-      provider.attributes = attributes
-      await provider.save()
+      result.attributes = attributes
+      provider = await result.save()
     } catch (err) {
       if (err.code === '23505') {
         //duplicate username...
