@@ -1,9 +1,6 @@
 import 'reflect-metadata'
 import { __prod__ } from './constants'
-import {
-  Client,
-  Provider,
-} from './entities'
+import { Client, Provider, ProviderAttributes } from './entities'
 import express from 'express'
 import { ApolloServer } from 'apollo-server-express'
 import { buildSchema } from 'type-graphql'
@@ -12,14 +9,8 @@ import session from 'express-session'
 import connectRedis from 'connect-redis'
 import dotenv from 'dotenv'
 import path from 'path'
-import cors from 'cors'
 import { createConnection } from 'typeorm'
-import { 
-  TestResolver, 
-  ClientResolver,
-  ProviderResolver,
-} from './resolvers'
-
+import { TestResolver, ClientResolver, ProviderResolver } from './resolvers'
 
 dotenv.config()
 
@@ -34,36 +25,34 @@ const main = async () => {
     logging: true,
     synchronize: true,
     migrations: [path.join(__dirname, './migrations/*')],
-    entities: [ Client, Provider ],
+    entities: [Client, Provider, ProviderAttributes],
   })
 
+  await connection.dropDatabase() //drop for testing
   await connection.runMigrations()
 
   //migrate...
 
   //Inital test for mikrorm
-    //create test entity
-    //const testUser = orm.em.create(Client, { firstName: 'TestUser'})
+  //create test entity
+  //const testUser = orm.em.create(Client, { firstName: 'TestUser'})
 
-    //to postgresdb--
+  //to postgresdb--
   //orm.em.persistAndFlush(testUser)
-
 
   //create express
   const app = express()
   const RedisStore = connectRedis(session)
   const redis = new Redis(process.env.REDIS_URL)
+  const corsOptions = {
+    origin: process.env.CORS_DEBUG, //change to production later...
+    credentials: true,
+  }
   app.set('trust proxy', 1)
-  app.use(
-    cors({
-      origin: process.env.CORS_ORIGIN,
-      credentials: true,
-    })
-  )
   app.use(
     session({
       name: 'token',
-      store: new RedisStore({ 
+      store: new RedisStore({
         client: redis,
         disableTouch: true, //redis session lasts forever...
       }),
@@ -72,7 +61,7 @@ const main = async () => {
         httpOnly: true,
         sameSite: 'lax', //https://portswigger.net/web-security/csrf/samesite-cookies
         secure: true, //cookie in https
-        domain: __prod__ ? ".blondpony.com" : undefined,
+        domain: __prod__ ? '.blondpony.com' : undefined,
       },
       saveUninitialized: false,
       secret: String(process.env.SESSION_SECRET),
@@ -82,30 +71,26 @@ const main = async () => {
 
   const apolloServer = new ApolloServer({
     schema: await buildSchema({
-      resolvers: [
-        TestResolver,
-        ClientResolver,
-        ProviderResolver,
-      ],
+      resolvers: [TestResolver, ClientResolver, ProviderResolver],
       validate: false,
     }),
     introspection: true,
     playground: {
       settings: {
         'request.credentials': 'include',
-      }
+      },
     },
-    context: ({ req, res }) => ({ req, res, redis })
+    context: ({ req, res }) => ({ req, res, redis }),
   })
 
-  apolloServer.applyMiddleware({ app,
-    cors: false,
+  apolloServer.applyMiddleware({
+    app,
+    cors: corsOptions,
   })
 
   app.listen(parseInt(process.env.PORT!), () => {
-    console.log('server started on localhost:5000')
+    console.log('server started on localhost:8080')
   })
-
 }
 
 main().catch((err) => {
