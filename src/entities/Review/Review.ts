@@ -5,8 +5,7 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn,
   BaseEntity,
-  JoinColumn,
-  OneToOne,
+  ManyToOne,
 } from 'typeorm'
 import { ObjectType, Field, ID, Int } from 'type-graphql'
 import { Provider } from '../Provider'
@@ -22,13 +21,11 @@ export class Review extends BaseEntity {
   id!: number
 
   @Field(() => Client, { nullable: true })
-  @OneToOne(() => Client)
-  @JoinColumn()
+  @ManyToOne(() => Client, (client) => client.reviews)
   client: Client
 
   @Field(() => Provider, { nullable: true })
-  @OneToOne(() => Provider)
-  @JoinColumn()
+  @ManyToOne(() => Provider, (provider) => provider.reviews)
   provider: Provider
 
   @Field(() => Date, { nullable: true })

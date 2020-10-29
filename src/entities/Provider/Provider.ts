@@ -7,9 +7,11 @@ import {
   BaseEntity,
   JoinColumn,
   OneToOne,
+  OneToMany,
 } from 'typeorm'
 import { ObjectType, Field, ID } from 'type-graphql'
 import { ProviderAttributes } from '../ProviderAttributes'
+import { Review } from '../Review'
 
 @ObjectType({
   description: 'The provider model',
@@ -70,6 +72,10 @@ export class Provider extends BaseEntity {
   @Field(() => Number, { nullable: true })
   @Column({ nullable: true, default: null })
   latitude: number
+
+  @Field(() => [Review], { nullable: true })
+  @OneToMany(() => Review, (review) => review.client, { nullable: true })
+  reviews: Review[]
 
   @Field(() => [String], { nullable: true })
   @Column('text', { nullable: true, array: true, default: {} })

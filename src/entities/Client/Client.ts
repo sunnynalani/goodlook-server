@@ -5,9 +5,11 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn,
   BaseEntity,
+  OneToMany,
 } from 'typeorm'
 import { GenderType } from '../types'
 import { ObjectType, Field, ID, Int } from 'type-graphql'
+import { Review } from '../Review'
 
 @ObjectType({
   description: 'The client model',
@@ -45,6 +47,10 @@ export class Client extends BaseEntity {
   @Field(() => String, { nullable: true })
   @Column({ nullable: true, default: null })
   lastName!: String
+
+  @Field(() => [Review], { nullable: true })
+  @OneToMany(() => Review, (review) => review.client)
+  reviews: Review[]
 
   @Field(() => Int, { nullable: true })
   @Column({ default: 0 })
