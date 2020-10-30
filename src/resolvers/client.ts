@@ -17,13 +17,27 @@ export class ClientResolver {
   @Query(() => Client, { nullable: true })
   async selfClient(@Ctx() { req }: MyContext) {
     if (!req.session.clientId) return null
-    return await Client.findOne(parseInt(req.session.clientId))
+    return await getConnection()
+      .getRepository(Client)
+      .findOne({
+        where: {
+          id: parseInt(req.session.clientId),
+        },
+        relations: ['reviews'],
+      })
   }
 
   @Query(() => ClientResponse)
   async client(@Arg('clientId') clientId: number) {
     let client
-    client = Client.findOne(clientId)
+    client = await getConnection()
+      .getRepository(Client)
+      .findOne({
+        where: {
+          id: clientId,
+        },
+        relations: ['reviews'],
+      })
     if (!client) {
       return {
         errors: [
@@ -42,11 +56,8 @@ export class ClientResolver {
     let clients
     try {
       const result = await getConnection()
-        .createQueryBuilder()
-        //.orderBy('user.id', dto.order) todo sort
-        //.skip(rowsPerPage) todo pagination
-        //.take()
-        .getMany()
+        .getRepository(Client)
+        .find({ relations: ['reviews'] })
       clients = result
     } catch (err) {
       return {

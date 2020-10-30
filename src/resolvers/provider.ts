@@ -27,7 +27,7 @@ export class ProviderResolver {
         where: {
           id: parseInt(req.session.providerId),
         },
-        relations: ['attributes'],
+        relations: ['attributes', 'reviews'],
       })
   }
 
@@ -41,7 +41,7 @@ export class ProviderResolver {
         where: {
           id: providerId,
         },
-        relations: ['attributes'],
+        relations: ['attributes', 'reviews'],
       })
     if (!provider) {
       return {
@@ -62,7 +62,7 @@ export class ProviderResolver {
     try {
       const result = await getConnection()
         .getRepository(Provider)
-        .find({ relations: ['attributes'] })
+        .find({ relations: ['attributes', 'reviews'] })
       providers = result
     } catch (err) {
       return {
