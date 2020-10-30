@@ -1,5 +1,5 @@
 import { Resolver, Mutation, Arg, Query } from 'type-graphql'
-import { Review } from '../entities'
+import { Client, Review } from '../entities'
 import { getConnection } from 'typeorm'
 import {
   ReviewInput,
@@ -22,8 +22,8 @@ export class ReviewResolver {
   //May not work
   @Query(() => ReviewsResponse, { nullable: true })
   async specificReviews(
-    @Arg('clientId') clientId: string,
-    @Arg('providerId') providerId: string
+    @Arg('clientId') clientId: number,
+    @Arg('providerId') providerId: number
   ): Promise<ReviewsResponse> {
     let reviews
     try {
@@ -109,6 +109,48 @@ export class ReviewResolver {
         success: false,
       }
     }
+    return { success: true }
+  }
+
+  @Mutation(() => SuccessResponse)
+  async createReview(
+    @Arg('clientId') clientId: number,
+    @Arg('providerId') providerId: number,
+    @Arg('input') input: ReviewInput
+  ): Promise<SuccessResponse> {
+    const client = await Client.findOne(clientId)
+    const provider = await Client.findOne(providerId)
+    const aggregateErrors = []
+    if (!client) {
+      aggregateErrors.push({
+        field: 'clientId',
+        message: 'client does not exist',
+      })
+    }
+    if (!provider) {
+      aggregateErrors.push({
+        field: 'providerId',
+        message: 'provider does not exist',
+      })
+    }
+    if (input.rating < 0 && input.rating > 5) {
+      aggregateErrors.push({
+        field: 'rating',
+        message: 'invalid range for rating',
+      })
+    }
+    if (input.text.length >= 300) {
+      aggregateErrors.push({
+        field: 'text',
+        message: 'invalid range for text',
+      })
+    }
+    if (aggregateErrors.length) return { errors: aggregateErrors }
+    await Review.create({
+      client: client,
+      provider: provider,
+      ...input,
+    })
     return { success: true }
   }
 }
