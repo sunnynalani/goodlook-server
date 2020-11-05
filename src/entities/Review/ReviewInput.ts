@@ -1,9 +1,9 @@
-import { InputType, Field } from 'type-graphql'
+import { InputType, Field, Int } from 'type-graphql'
 
 @InputType()
 export class ReviewInput {
-  @Field(() => Number, { nullable: true })
-  rating: Number
+  @Field(() => Int, { nullable: true })
+  rating: number
 
   @Field(() => String, { nullable: true })
   text: String

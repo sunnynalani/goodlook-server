@@ -6,6 +6,7 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm'
+import { IsDate } from 'class-validator'
 import { ObjectType, Field, ID } from 'type-graphql'
 
 @ObjectType({ description: 'attributes of the provider' })
@@ -16,10 +17,12 @@ export class ProviderAttributes extends BaseEntity {
   id!: number
 
   @Field(() => Date, { nullable: true })
+  @IsDate()
   @CreateDateColumn()
   createdAt = new Date()
 
   @Field(() => Date, { nullable: true })
+  @IsDate()
   @UpdateDateColumn()
   updatedAt = new Date()
 
