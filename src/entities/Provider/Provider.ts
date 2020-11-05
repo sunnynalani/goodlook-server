@@ -75,15 +75,19 @@ export class Provider extends BaseEntity {
   zipcode: number
 
   @Field(() => Number, { nullable: true })
-  @Column({ nullable: true, default: null })
+  @Column({ type: 'float', nullable: true, default: null })
   longitude: number
 
   @Field(() => Number, { nullable: true })
-  @Column({ nullable: true, default: null })
+  @Column({ type: 'float', nullable: true, default: null })
   latitude: number
 
   @Field(() => [Review], { nullable: true })
-  @OneToMany(() => Review, (review) => review.client, { nullable: true })
+  @OneToMany(() => Review, (review) => review.client, {
+    nullable: true,
+    cascade: true,
+    eager: true,
+  })
   reviews: Review[]
 
   @Field(() => [String], { nullable: true })

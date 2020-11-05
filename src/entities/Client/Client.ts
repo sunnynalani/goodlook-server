@@ -57,7 +57,10 @@ export class Client extends BaseEntity {
   lastName!: String
 
   @Field(() => [Review], { nullable: true })
-  @OneToMany(() => Review, (review) => review.client)
+  @OneToMany(() => Review, (review) => review.client, {
+    cascade: true,
+    eager: true,
+  })
   reviews: Review[]
 
   @Field(() => Int, { nullable: true })
@@ -66,6 +69,6 @@ export class Client extends BaseEntity {
   reviewCount: Number
 
   @Field(() => GenderType, { nullable: true })
-  @Column({ nullable: true, default: null })
+  @Column({ nullable: true, default: GenderType.OTHER })
   gender: GenderType
 }

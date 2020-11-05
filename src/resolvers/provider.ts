@@ -6,6 +6,8 @@ import { Provider } from '../entities'
 import argon2 from 'argon2'
 import { COOKIE_NAME } from '../constants'
 import { getConnection } from 'typeorm'
+import axios from 'axios'
+import dotenv from 'dotenv'
 import {
   ProviderResponse,
   ProvidersResponse,
@@ -15,6 +17,43 @@ import {
   AttributesInput,
   ProviderAttributes,
 } from '../entities/ProviderAttributes'
+
+dotenv.config()
+
+const getMapQuestData = async (
+  country?: String,
+  state?: String,
+  city?: String,
+  street?: String,
+  zipcode?: string
+): Promise<any> => {
+  let url = new URL('http://www.mapquestapi.com/geocoding/v1/address')
+  let location =
+    `${country ? `${country.split(/\s/).join(' ')} ` : ''}` +
+    `${state ? `${state.split(/\s/).join(' ')} ` : ''}` +
+    `${city ? `${city.split(/\s/).join(' ')} ` : ''}` +
+    `${street ? `${street.split(/\s/).join(' ')} ` : ''}` +
+    `${zipcode ? `${zipcode.split(/\s/).join(' ')}` : ''}`
+  location = location || ''
+  let params = [
+    ['key', process.env.MAPQUEST_API || ''],
+    ['maxResults', '1'],
+    ['location', location],
+  ]
+  url.search = new URLSearchParams(params).toString()
+  console.log(url.toString())
+  try {
+    const result = await axios({
+      method: 'get',
+      url: url.toString(),
+    })
+    //console.log(result)
+    if (result.statusText === 'OK') return result.data
+  } catch (err) {
+    console.error(err)
+    return null
+  }
+}
 
 @Resolver(Provider)
 export class ProviderResolver {
@@ -90,10 +129,22 @@ export class ProviderResolver {
     const hashedPassword = await argon2.hash(input.password)
     try {
       const attributes = await ProviderAttributes.create(attributesInput).save()
+      const mapQuestData = await getMapQuestData(
+        providerInput.country || '',
+        providerInput.state || '',
+        providerInput.city || '',
+        providerInput.street || '',
+        String(providerInput.zipcode) || ''
+      )
+      const lngLat = mapQuestData.results[0].locations[0].latLng
+      console.log(lngLat)
+      console.log(typeof lngLat.lng)
       const result = await Provider.create({
         email: input.email,
         username: input.username,
         password: hashedPassword,
+        latitude: lngLat.lat,
+        longitude: lngLat.lng,
         ...providerInput,
       }).save()
       result.attributes = attributes
