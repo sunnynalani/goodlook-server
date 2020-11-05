@@ -55,7 +55,7 @@ export class ReviewResolver {
   }
 
   @Query(() => ReviewResponse)
-  async provider(@Arg('reviewId') reviewId: number) {
+  async review(@Arg('reviewId') reviewId: number) {
     let review
     //provider = Provider.findOne(providerId)
     review = await getConnection()
@@ -77,6 +77,36 @@ export class ReviewResolver {
       }
     }
     return { review }
+  }
+
+  @Query(() => ReviewsResponse)
+  async providerReviews(
+    @Arg('providerId') providerId: number
+  ): Promise<ReviewsResponse> {
+    let reviews
+    try {
+      const result = await getConnection()
+        .getRepository(Review)
+        .find({
+          where: {
+            provider: {
+              id: providerId,
+            },
+          },
+          relations: ['client', 'provider'],
+        })
+      reviews = result
+    } catch (err) {
+      return {
+        errors: [
+          {
+            field: 'NaN',
+            message: 'query failed',
+          },
+        ],
+      }
+    }
+    return { reviews }
   }
 
   @Mutation(() => SuccessResponse, { nullable: true })
@@ -150,7 +180,7 @@ export class ReviewResolver {
       client: client,
       provider: provider,
       ...input,
-    })
+    }).save()
     return { success: true }
   }
 }
