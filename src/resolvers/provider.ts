@@ -41,13 +41,11 @@ const getMapQuestData = async (
     ['location', location],
   ]
   url.search = new URLSearchParams(params).toString()
-  console.log(url.toString())
   try {
     const result = await axios({
       method: 'get',
       url: url.toString(),
     })
-    //console.log(result)
     if (result.statusText === 'OK') return result.data
   } catch (err) {
     console.error(err)
@@ -58,7 +56,7 @@ const getMapQuestData = async (
 @Resolver(Provider)
 export class ProviderResolver {
   @Query(() => Provider, { nullable: true })
-  async selfProvider(@Ctx() { req }: MyContext) {
+  async meProvider(@Ctx() { req }: MyContext) {
     if (!req.session.providerId) return null
     return await getConnection()
       .getRepository(Provider)
@@ -137,8 +135,6 @@ export class ProviderResolver {
         String(providerInput.zipcode) || ''
       )
       const lngLat = mapQuestData.results[0].locations[0].latLng
-      console.log(lngLat)
-      console.log(typeof lngLat.lng)
       const result = await Provider.create({
         email: input.email,
         username: input.username,

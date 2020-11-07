@@ -15,7 +15,7 @@ import {
 @Resolver(Client)
 export class ClientResolver {
   @Query(() => Client, { nullable: true })
-  async selfClient(@Ctx() { req }: MyContext) {
+  async meClient(@Ctx() { req }: MyContext) {
     if (!req.session.clientId) return null
     return await getConnection()
       .getRepository(Client)
