@@ -1,6 +1,6 @@
 import { Resolver, Mutation, Arg, Ctx, Query } from 'type-graphql'
 import { UsernamePasswordInput } from '../entities/types/UsernamePasswordInput'
-import { validateRegisterInputs } from '../utils/'
+import { validateRegisterInputs, filterQuery, Filters } from '../utils/'
 import { MyContext } from '../types'
 import { Provider } from '../entities'
 import argon2 from 'argon2'
@@ -94,13 +94,15 @@ export class ProviderResolver {
   }
 
   @Query(() => ProvidersResponse)
-  async providers(): Promise<ProvidersResponse> {
+  async providers(@Arg('filter') filters: Filters): Promise<ProvidersResponse> {
     let providers
     try {
       const result = await getConnection()
         .getRepository(Provider)
-        .find({ relations: ['attributes', 'reviews'] })
-      providers = result
+        .createQueryBuilder()
+      const filterdResult = await filterQuery(result, filters).getMany()
+      //.find({ relations: ['attributes', 'reviews'] })
+      providers = filterdResult
     } catch (err) {
       return {
         errors: [

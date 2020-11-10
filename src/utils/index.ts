@@ -1,1 +1,2 @@
-export { validateRegisterInputs } from '../utils/validateRegisterInput'
+export { validateRegisterInputs } from './validateRegisterInput'
+export { filterQuery, Filters } from './filterQuery'
