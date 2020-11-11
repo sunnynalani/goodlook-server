@@ -1,6 +1,12 @@
 import { Resolver, Mutation, Arg, Ctx, Query } from 'type-graphql'
 import { UsernamePasswordInput } from '../entities/types/UsernamePasswordInput'
-import { validateRegisterInputs, filterQuery, Filters } from '../utils/'
+import {
+  validateRegisterInputs,
+  filterQuery,
+  GraphQLFilterType,
+  distanceInput,
+  distanceQuery,
+} from '../utils/'
 import { MyContext } from '../types'
 import { Provider } from '../entities'
 import argon2 from 'argon2'
@@ -94,15 +100,24 @@ export class ProviderResolver {
   }
 
   @Query(() => ProvidersResponse)
-  async providers(@Arg('filter') filters: Filters): Promise<ProvidersResponse> {
+  async providers(
+    @Arg('filters', () => GraphQLFilterType, { nullable: true })
+    filters: typeof GraphQLFilterType,
+    @Arg('within', { nullable: true })
+    distanceInput: distanceInput
+  ): Promise<ProvidersResponse> {
     let providers
     try {
       const result = await getConnection()
         .getRepository(Provider)
         .createQueryBuilder()
-      const filterdResult = await filterQuery(result, filters).getMany()
-      //.find({ relations: ['attributes', 'reviews'] })
-      providers = filterdResult
+      const augmentedResult = await distanceQuery(
+        filterQuery(result, filters),
+        distanceInput.latitude,
+        distanceInput.longitude,
+        distanceInput.distance
+      ).getMany()
+      providers = augmentedResult
     } catch (err) {
       return {
         errors: [
@@ -119,8 +134,9 @@ export class ProviderResolver {
   @Mutation(() => ProviderResponse)
   async registerProvider(
     @Arg('input') input: UsernamePasswordInput,
-    @Arg('attributesInput') attributesInput: AttributesInput,
-    @Arg('providerInput') providerInput: ProviderInput,
+    @Arg('attributesInput', { nullable: true })
+    attributesInput: AttributesInput,
+    @Arg('providerInput', { nullable: true }) providerInput: ProviderInput,
     @Ctx() { req }: MyContext
   ): Promise<ProviderResponse> {
     const errors = validateRegisterInputs(input)

@@ -1,2 +1,3 @@
 export { validateRegisterInputs } from './validateRegisterInput'
-export { filterQuery, Filters } from './filterQuery'
+export { filterQuery, GraphQLFilterType } from './filters'
+export { distanceInput, distanceQuery } from './distance'
