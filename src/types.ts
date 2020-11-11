@@ -5,4 +5,5 @@ export type MyContext = {
   req: Request & { session: Express.Session } //always defined session... otherwise session!
   res: Response
   redis: Redis
+  payload?: any
 }

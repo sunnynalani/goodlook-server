@@ -57,14 +57,14 @@ const main = async () => {
         disableTouch: true, //redis session lasts forever...
       }),
       cookie: {
-        maxAge: 1000 * 60 * 60 * 24 * 365, //cookie duration: 1 year
+        maxAge: 1000 * 60 * 60 * 24 * 7, //cookie duration: 1 week
         httpOnly: true,
         sameSite: 'lax', //https://portswigger.net/web-security/csrf/samesite-cookies
-        secure: true, //cookie in https
+        secure: true, //cookie in https always in production lol
         domain: __prod__ ? '.blondpony.com' : undefined,
       },
       saveUninitialized: false,
-      secret: String(process.env.SESSION_SECRET),
+      secret: process.env.SESSION_SECRET!,
       resave: false,
     })
   )

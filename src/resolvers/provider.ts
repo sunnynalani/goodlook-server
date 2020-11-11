@@ -1,6 +1,12 @@
 import { Resolver, Mutation, Arg, Ctx, Query } from 'type-graphql'
 import { UsernamePasswordInput } from '../entities/types/UsernamePasswordInput'
-import { validateRegisterInputs } from '../utils/'
+import {
+  validateRegisterInputs,
+  filterQuery,
+  GraphQLFilterType,
+  distanceInput,
+  distanceQuery,
+} from '../utils/'
 import { MyContext } from '../types'
 import { Provider } from '../entities'
 import argon2 from 'argon2'
@@ -41,13 +47,11 @@ const getMapQuestData = async (
     ['location', location],
   ]
   url.search = new URLSearchParams(params).toString()
-  console.log(url.toString())
   try {
     const result = await axios({
       method: 'get',
       url: url.toString(),
     })
-    //console.log(result)
     if (result.statusText === 'OK') return result.data
   } catch (err) {
     console.error(err)
@@ -58,7 +62,7 @@ const getMapQuestData = async (
 @Resolver(Provider)
 export class ProviderResolver {
   @Query(() => Provider, { nullable: true })
-  async selfProvider(@Ctx() { req }: MyContext) {
+  async meProvider(@Ctx() { req }: MyContext) {
     if (!req.session.providerId) return null
     return await getConnection()
       .getRepository(Provider)
@@ -96,13 +100,24 @@ export class ProviderResolver {
   }
 
   @Query(() => ProvidersResponse)
-  async providers(): Promise<ProvidersResponse> {
+  async providers(
+    @Arg('filters', () => GraphQLFilterType, { nullable: true })
+    filters: typeof GraphQLFilterType,
+    @Arg('within', { nullable: true })
+    distanceInput: distanceInput
+  ): Promise<ProvidersResponse> {
     let providers
     try {
       const result = await getConnection()
         .getRepository(Provider)
-        .find({ relations: ['attributes', 'reviews'] })
-      providers = result
+        .createQueryBuilder()
+      const augmentedResult = await distanceQuery(
+        filterQuery(result, filters),
+        distanceInput.latitude,
+        distanceInput.longitude,
+        distanceInput.distance
+      ).getMany()
+      providers = augmentedResult
     } catch (err) {
       return {
         errors: [
@@ -119,8 +134,9 @@ export class ProviderResolver {
   @Mutation(() => ProviderResponse)
   async registerProvider(
     @Arg('input') input: UsernamePasswordInput,
-    @Arg('attributesInput') attributesInput: AttributesInput,
-    @Arg('providerInput') providerInput: ProviderInput,
+    @Arg('attributesInput', { nullable: true })
+    attributesInput: AttributesInput,
+    @Arg('providerInput', { nullable: true }) providerInput: ProviderInput,
     @Ctx() { req }: MyContext
   ): Promise<ProviderResponse> {
     const errors = validateRegisterInputs(input)
@@ -137,8 +153,6 @@ export class ProviderResolver {
         String(providerInput.zipcode) || ''
       )
       const lngLat = mapQuestData.results[0].locations[0].latLng
-      console.log(lngLat)
-      console.log(typeof lngLat.lng)
       const result = await Provider.create({
         email: input.email,
         username: input.username,
