@@ -1,6 +1,12 @@
 import { Resolver, Mutation, Arg, Ctx, Query } from 'type-graphql'
 import { UsernamePasswordInput } from '../entities/types/UsernamePasswordInput'
-import { validateRegisterInputs } from '../utils/'
+import {
+  filterQuery,
+  GraphQLFilterType,
+  GraphQLSortType,
+  sortQuery,
+  validateRegisterInputs,
+} from '../utils/'
 import { MyContext } from '../types'
 import { Client } from '../entities'
 import argon2 from 'argon2'
@@ -52,13 +58,22 @@ export class ClientResolver {
   }
 
   @Query(() => ClientsResponse)
-  async clients(): Promise<ClientsResponse> {
+  async clients(
+    @Arg('filters', () => GraphQLFilterType, { nullable: true })
+    filters: typeof GraphQLFilterType,
+    @Arg('sort', () => GraphQLSortType, { nullable: true })
+    sort: typeof GraphQLSortType
+  ): Promise<ClientsResponse> {
     let clients
     try {
       const result = await getConnection()
         .getRepository(Client)
-        .find({ relations: ['reviews'] })
-      clients = result
+        .createQueryBuilder()
+        .leftJoinAndSelect('Client.reviews', 'reviews')
+      let augmentedQuery = filterQuery(result, filters)
+      augmentedQuery = sortQuery(augmentedQuery, sort, 'Client')
+      const augmentedResult = await augmentedQuery.getMany()
+      clients = augmentedResult
     } catch (err) {
       return {
         errors: [

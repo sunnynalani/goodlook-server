@@ -6,6 +6,8 @@ import {
   GraphQLFilterType,
   distanceInput,
   distanceQuery,
+  GraphQLSortType,
+  sortQuery,
 } from '../utils/'
 import { MyContext } from '../types'
 import { Provider } from '../entities'
@@ -103,27 +105,37 @@ export class ProviderResolver {
   async providers(
     @Arg('filters', () => GraphQLFilterType, { nullable: true })
     filters: typeof GraphQLFilterType,
+    @Arg('sort', () => GraphQLSortType, { nullable: true })
+    sort: typeof GraphQLSortType,
     @Arg('within', { nullable: true })
     distanceInput: distanceInput
   ): Promise<ProvidersResponse> {
     let providers
     try {
+      console.log(filters)
       const result = await getConnection()
         .getRepository(Provider)
         .createQueryBuilder()
-      const augmentedResult = await distanceQuery(
-        filterQuery(result, filters),
-        distanceInput.latitude,
-        distanceInput.longitude,
-        distanceInput.distance
-      ).getMany()
+        .leftJoinAndSelect('Provider.attributes', 'attributes')
+        .leftJoinAndSelect('Provider.reviews', 'reviews')
+      let augmentedQuery = filterQuery(result, filters)
+      augmentedQuery = distanceInput
+        ? distanceQuery(
+            augmentedQuery,
+            distanceInput.latitude,
+            distanceInput.longitude,
+            distanceInput.distance
+          )
+        : augmentedQuery
+      augmentedQuery = sortQuery(augmentedQuery, sort, 'Provider')
+      const augmentedResult = await augmentedQuery.getMany()
       providers = augmentedResult
     } catch (err) {
       return {
         errors: [
           {
             field: 'NaN',
-            message: 'query failed',
+            message: err,
           },
         ],
       }

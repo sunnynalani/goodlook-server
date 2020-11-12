@@ -1,6 +1,14 @@
 import { SelectQueryBuilder, Brackets, WhereExpression } from 'typeorm'
 import { GraphQLScalarType, Kind, ValueNode } from 'graphql'
 
+export const GraphQLFilterType = new GraphQLScalarType({
+  name: 'GraphQLFilterType',
+  description: 'GraphQLFilterType',
+  serialize: (v) => v,
+  parseValue: (v) => v,
+  parseLiteral: (ast) => filterLiteral(ast),
+})
+
 const filterLiteral = (ast: ValueNode): any => {
   switch (ast.kind) {
     case Kind.BOOLEAN:
@@ -25,14 +33,6 @@ const filterLiteral = (ast: ValueNode): any => {
       return null
   }
 }
-
-export const GraphQLFilterType = new GraphQLScalarType({
-  name: 'GraphQLFilterType',
-  description: 'GraphQLFilterType',
-  serialize: (v) => v,
-  parseValue: (v) => v,
-  parseLiteral: (ast) => filterLiteral(ast),
-})
 
 export enum Operator {
   AND = 'AND',
