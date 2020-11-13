@@ -32,22 +32,22 @@ export class Review extends BaseEntity {
   @Field(() => Date, { nullable: true })
   @IsDate()
   @CreateDateColumn()
-  createdAt = new Date()
+  created_at = new Date()
 
   @Field(() => Date, { nullable: true })
   @IsDate()
   @UpdateDateColumn()
-  updatedAt = new Date()
+  updated_at = new Date()
 
   @Field(() => Int, { nullable: true })
   @IsInt()
   @Min(0)
   @Max(5)
-  @Column({ type: 'integer', nullable: true, default: null })
-  rating: Number
+  @Column({ type: 'integer', default: 0 })
+  rating: number
 
   @Field(() => String, { nullable: true })
   @Length(0, 300)
-  @Column({ type: 'text', nullable: true, default: null })
+  @Column({ type: 'text', default: '' })
   text: String
 }

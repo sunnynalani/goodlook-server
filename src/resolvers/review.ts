@@ -1,5 +1,5 @@
 import { Resolver, Mutation, Arg, Query } from 'type-graphql'
-import { Client, Review } from '../entities'
+import { Client, Provider, Review } from '../entities'
 import { getConnection } from 'typeorm'
 import {
   ReviewInput,
@@ -7,6 +7,64 @@ import {
   ReviewsResponse,
 } from '../entities/Review'
 import { SuccessResponse } from '../entities/types'
+import {
+  filterQuery,
+  GraphQLFilterType,
+  GraphQLSortType,
+  sortQuery,
+} from '../utils/'
+
+const updateClient = async (client: Client) => {
+  await getConnection()
+    .createQueryBuilder()
+    .update(Client)
+    .set({ review_count: client!.review_count + 1 })
+    .where('id = :id', { id: client.id })
+    .execute()
+}
+
+const updateProvider = async (
+  provider: Provider,
+  rating: number,
+  previous_rating = 0,
+  isUpdate = false
+) => {
+  await getConnection()
+    .createQueryBuilder()
+    .update(Provider)
+    .set({
+      average_rating: isUpdate
+        ? updateAverageRating(
+            provider.reviews,
+            provider.average_rating,
+            previous_rating,
+            rating
+          )
+        : addAverageRating(provider.reviews, rating),
+    })
+    .where('id = :id', { id: provider.id })
+    .execute()
+}
+
+const updateAverageRating = (
+  reviews: Review[],
+  previous_average_rating: number,
+  previous_rating: number,
+  new_rating: number
+) => {
+  return (
+    (reviews.length * previous_average_rating - previous_rating + new_rating) /
+    reviews.length
+  )
+}
+
+const addAverageRating = (reviews: Review[], new_rating: number) => {
+  let total = 0
+  reviews.forEach((review) => {
+    total += review.rating
+  })
+  return (new_rating + total) / (reviews.length + 1)
+}
 
 @Resolver(Review)
 export class ReviewResolver {
@@ -45,8 +103,8 @@ export class ReviewResolver {
       return {
         errors: [
           {
-            field: 'NaN',
-            message: 'query failed',
+            field: 'Error',
+            message: err,
           },
         ],
       }
@@ -80,6 +138,37 @@ export class ReviewResolver {
   }
 
   @Query(() => ReviewsResponse)
+  async reviews(
+    @Arg('filters', () => GraphQLFilterType, { nullable: true })
+    filters: typeof GraphQLFilterType,
+    @Arg('sort', () => GraphQLSortType, { nullable: true })
+    sort: typeof GraphQLSortType
+  ): Promise<ReviewsResponse> {
+    let reviews
+    try {
+      const result = await getConnection()
+        .getRepository(Review)
+        .createQueryBuilder()
+        .leftJoinAndSelect('Review.client', 'client')
+        .leftJoinAndSelect('Review.provider', 'provider')
+      let augmentedQuery = filterQuery(result, filters)
+      augmentedQuery = sortQuery(augmentedQuery, sort, 'Review')
+      const augmentedResult = await augmentedQuery.getMany()
+      reviews = augmentedResult
+    } catch (err) {
+      return {
+        errors: [
+          {
+            field: 'Error',
+            message: err,
+          },
+        ],
+      }
+    }
+    return { reviews }
+  }
+
+  @Query(() => ReviewsResponse)
   async providerReviews(
     @Arg('providerId') providerId: number
   ): Promise<ReviewsResponse> {
@@ -100,8 +189,38 @@ export class ReviewResolver {
       return {
         errors: [
           {
-            field: 'NaN',
-            message: 'query failed',
+            field: 'Error',
+            message: err,
+          },
+        ],
+      }
+    }
+    return { reviews }
+  }
+
+  @Query(() => ReviewsResponse)
+  async clientReviews(
+    @Arg('clientId') clientId: number
+  ): Promise<ReviewsResponse> {
+    let reviews
+    try {
+      const result = await getConnection()
+        .getRepository(Review)
+        .find({
+          where: {
+            client: {
+              id: clientId,
+            },
+          },
+          relations: ['client', 'provider'],
+        })
+      reviews = result
+    } catch (err) {
+      return {
+        errors: [
+          {
+            field: 'Error',
+            message: err,
           },
         ],
       }
@@ -114,7 +233,10 @@ export class ReviewResolver {
     @Arg('reviewId') reviewId: number,
     @Arg('input') input: ReviewInput
   ): Promise<SuccessResponse> {
-    const review = await Review.findOne(reviewId)
+    const review = await Review.findOne({
+      where: { id: reviewId },
+      relations: ['client', 'provider'],
+    })
     if (!review) {
       return {
         errors: [
@@ -128,12 +250,13 @@ export class ReviewResolver {
     }
     try {
       await Review.update(reviewId, { ...input })
+      updateProvider(review.provider, input.rating, review.rating, true)
     } catch (err) {
       return {
         errors: [
           {
-            field: 'NaN',
-            message: 'query failed',
+            field: 'Error',
+            message: err,
           },
         ],
         success: false,
@@ -148,8 +271,20 @@ export class ReviewResolver {
     @Arg('providerId') providerId: number,
     @Arg('input') input: ReviewInput
   ): Promise<SuccessResponse> {
-    const client = await Client.findOne(clientId)
-    const provider = await Client.findOne(providerId)
+    //This is silly, but need to do this
+    //so I can update the rating columns...
+    //maybe there is a better way to trigger this
+    //https://typeorm.io/#/listeners-and-subscribers/what-is-a-subscriber
+    //it exists, but i dont think this works for
+    //referencing other tables besides itself
+    const client = await Client.findOne({
+      where: { id: clientId },
+      relations: ['reviews'],
+    })
+    const provider = await Provider.findOne({
+      where: { id: providerId },
+      relations: ['reviews'],
+    })
     const aggregateErrors = []
     if (!client) {
       aggregateErrors.push({
@@ -163,25 +298,27 @@ export class ReviewResolver {
         message: 'provider does not exist',
       })
     }
-    if (input.rating < 0 && input.rating > 5) {
-      aggregateErrors.push({
-        field: 'rating',
-        message: 'invalid range for rating',
-      })
-    }
-    if (input.text.length >= 300) {
-      aggregateErrors.push({
-        field: 'text',
-        message: 'invalid range for text',
-      })
-    }
     if (aggregateErrors.length) return { errors: aggregateErrors }
-    await Review.create({
-      client: client,
-      provider: provider,
-      ...input,
-    }).save()
-    return { success: true }
+    try {
+      await Review.create({
+        client: client,
+        provider: provider,
+        ...input,
+      }).save()
+      updateClient(client!)
+      updateProvider(provider!, input.rating, 0, false)
+      return { success: true }
+    } catch (err) {
+      return {
+        errors: [
+          {
+            field: 'Error',
+            message: err,
+          },
+        ],
+        success: false,
+      }
+    }
   }
 }
 

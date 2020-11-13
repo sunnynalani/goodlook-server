@@ -1,6 +1,6 @@
 import 'reflect-metadata'
 import { __prod__ } from './constants'
-import { Client, Provider, ProviderAttributes, Review } from './entities'
+import { Client, Provider, Review } from './entities'
 import express from 'express'
 import { ApolloServer } from 'apollo-server-express'
 import { buildSchema } from 'type-graphql'
@@ -25,7 +25,7 @@ const main = async () => {
     logging: true,
     synchronize: true,
     migrations: [path.join(__dirname, './migrations/*')],
-    entities: [Client, Provider, ProviderAttributes, Review],
+    entities: [Client, Provider, Review],
   })
 
   //await connection.dropDatabase() //drop for testing

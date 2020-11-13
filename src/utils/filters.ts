@@ -28,6 +28,7 @@ const filterLiteral = (ast: ValueNode): any => {
       })
       return values
     case Kind.STRING:
+      console.log(ast.value)
       return ast.value
     default:
       return null
@@ -79,6 +80,7 @@ const filterFactory = (
     } else {
       const queryPrefix = Object.keys(filters[exp])[0]
       const queryValue = Object.values(filters[exp])[0]
+      console.log(exp)
       if (Operator.AND === parentOperator) {
         query = query.andWhere(`${exp} ${prefix.get(queryPrefix)} :value`, {
           value: queryValue,

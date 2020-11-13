@@ -4,10 +4,10 @@ import { GenderType } from '../types'
 @InputType()
 export class ClientInput {
   @Field(() => String, { nullable: true })
-  firstName?: String
+  first_name?: String
 
   @Field(() => String, { nullable: true })
-  lastName?: String
+  last_name?: String
 
   @Field(() => GenderType, { nullable: true })
   gender?: GenderType

@@ -5,14 +5,12 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn,
   BaseEntity,
-  JoinColumn,
-  OneToOne,
   OneToMany,
 } from 'typeorm'
-import { ObjectType, Field, ID } from 'type-graphql'
+import { ObjectType, Field, ID, Int } from 'type-graphql'
 import { IsInt, Length, IsDate, IsEmail } from 'class-validator'
-import { ProviderAttributes } from '../ProviderAttributes'
 import { Review } from '../Review'
+import { Client } from '../Client'
 
 @ObjectType({
   description: 'The provider model',
@@ -26,12 +24,12 @@ export class Provider extends BaseEntity {
   @Field(() => Date, { nullable: true })
   @IsDate()
   @CreateDateColumn()
-  createdAt = new Date()
+  created_at = new Date()
 
   @Field(() => Date, { nullable: true })
   @IsDate()
   @UpdateDateColumn()
-  updatedAt = new Date()
+  updated_at = new Date()
 
   @Field(() => String)
   @IsEmail()
@@ -83,12 +81,22 @@ export class Provider extends BaseEntity {
   latitude: number
 
   @Field(() => [Review], { nullable: true })
-  @OneToMany(() => Review, (review) => review.client, {
-    nullable: true,
+  @OneToMany(() => Review, (review) => review.provider, {
     cascade: true,
     eager: true,
   })
   reviews: Review[]
+
+  @Field(() => [Client], { nullable: true })
+  @OneToMany(() => Client, (client) => client.favorites, {
+    cascade: true,
+    eager: true,
+  })
+  favorited_by: Client[]
+
+  @Field(() => Int, { nullable: true, defaultValue: 0 })
+  @Column({ default: 0 })
+  average_rating: number
 
   @Field(() => [String], { nullable: true })
   @Column('text', { nullable: true, array: true, default: {} })
@@ -98,8 +106,47 @@ export class Provider extends BaseEntity {
   @Column('text', { nullable: true, array: true, default: {} })
   tags: String[]
 
-  @Field(() => ProviderAttributes, { nullable: true })
-  @OneToOne(() => ProviderAttributes)
-  @JoinColumn()
-  attributes: ProviderAttributes
+  @Field(() => Boolean, { nullable: true })
+  @Column({ default: false })
+  bike_parking: Boolean
+
+  @Field(() => Boolean, { nullable: true })
+  @Column({ default: false })
+  accepts_bitcoin: Boolean
+
+  @Field(() => Boolean, { nullable: true })
+  @Column({ default: false })
+  accepts_credit_cards: Boolean
+
+  @Field(() => Boolean, { nullable: true })
+  @Column({ default: false })
+  garage_parking: Boolean
+
+  @Field(() => Boolean, { nullable: true })
+  @Column({ default: false })
+  street_parking: Boolean
+
+  @Field(() => Boolean, { nullable: true })
+  @Column({ default: false })
+  dogs_allowed: Boolean
+
+  @Field(() => Boolean, { nullable: true })
+  @Column({ default: false })
+  wheelchair_accessible: Boolean
+
+  @Field(() => Boolean, { nullable: true })
+  @Column({ default: false })
+  valet_parking: Boolean
+
+  @Field(() => Boolean, { nullable: true })
+  @Column({ default: false })
+  parking_lot: Boolean
+
+  @Field(() => Boolean, { nullable: true })
+  @Column({ default: false })
+  licensed: Boolean
+
+  @Field(() => Boolean, { nullable: true })
+  @Column({ default: false })
+  flexible_timing: Boolean
 }

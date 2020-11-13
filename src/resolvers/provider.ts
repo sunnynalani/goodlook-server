@@ -20,11 +20,8 @@ import {
   ProviderResponse,
   ProvidersResponse,
   ProviderInput,
-} from '../entities/Provider'
-import {
   AttributesInput,
-  ProviderAttributes,
-} from '../entities/ProviderAttributes'
+} from '../entities/Provider'
 
 dotenv.config()
 
@@ -72,7 +69,7 @@ export class ProviderResolver {
         where: {
           id: parseInt(req.session.providerId),
         },
-        relations: ['attributes', 'reviews'],
+        relations: ['reviews'],
       })
   }
 
@@ -86,7 +83,7 @@ export class ProviderResolver {
         where: {
           id: providerId,
         },
-        relations: ['attributes', 'reviews'],
+        relations: ['reviews'],
       })
     if (!provider) {
       return {
@@ -112,11 +109,9 @@ export class ProviderResolver {
   ): Promise<ProvidersResponse> {
     let providers
     try {
-      console.log(filters)
       const result = await getConnection()
         .getRepository(Provider)
         .createQueryBuilder()
-        .leftJoinAndSelect('Provider.attributes', 'attributes')
         .leftJoinAndSelect('Provider.reviews', 'reviews')
       let augmentedQuery = filterQuery(result, filters)
       augmentedQuery = distanceInput
@@ -134,7 +129,7 @@ export class ProviderResolver {
       return {
         errors: [
           {
-            field: 'NaN',
+            field: 'Error',
             message: err,
           },
         ],
@@ -156,7 +151,6 @@ export class ProviderResolver {
     let provider: any
     const hashedPassword = await argon2.hash(input.password)
     try {
-      const attributes = await ProviderAttributes.create(attributesInput).save()
       const mapQuestData = await getMapQuestData(
         providerInput.country || '',
         providerInput.state || '',
@@ -171,9 +165,9 @@ export class ProviderResolver {
         password: hashedPassword,
         latitude: lngLat.lat,
         longitude: lngLat.lng,
+        ...attributesInput,
         ...providerInput,
       }).save()
-      result.attributes = attributes
       provider = await result.save()
     } catch (err) {
       if (err.code === '23505') {

@@ -6,11 +6,13 @@ import {
   UpdateDateColumn,
   BaseEntity,
   OneToMany,
+  ManyToOne,
 } from 'typeorm'
 import { GenderType } from '../types'
 import { ObjectType, Field, ID, Int } from 'type-graphql'
-import { IsInt, Length, IsDate, IsEmail } from 'class-validator'
+import { Length, IsDate, IsEmail } from 'class-validator'
 import { Review } from '../Review'
+import { Provider } from '../Provider'
 
 @ObjectType({
   description: 'The client model',
@@ -24,12 +26,12 @@ export class Client extends BaseEntity {
   @Field(() => Date, { nullable: true })
   @IsDate()
   @CreateDateColumn()
-  createdAt = new Date()
+  created_at = new Date()
 
   @Field(() => Date, { nullable: true })
   @IsDate()
   @UpdateDateColumn()
-  updatedAt = new Date()
+  updated_at = new Date()
 
   @Field(() => String)
   @IsEmail()
@@ -49,12 +51,12 @@ export class Client extends BaseEntity {
   @Field(() => String, { nullable: true })
   @Length(0, 20)
   @Column({ nullable: true, default: null })
-  firstName: String
+  first_name: String
 
   @Field(() => String, { nullable: true })
   @Length(0, 20)
   @Column({ nullable: true, default: null })
-  lastName!: String
+  last_name!: String
 
   @Field(() => [Review], { nullable: true })
   @OneToMany(() => Review, (review) => review.client, {
@@ -63,10 +65,21 @@ export class Client extends BaseEntity {
   })
   reviews: Review[]
 
-  @Field(() => Int, { nullable: true })
-  @IsInt()
+  @Field(() => [Client], { nullable: true })
+  @OneToMany(() => Client, (client) => client.following)
+  followers: Client[]
+
+  @Field(() => [Client], { nullable: true })
+  @ManyToOne(() => Client, (client) => client.followers)
+  following: Client[]
+
+  @Field(() => [Provider], { nullable: true })
+  @OneToMany(() => Provider, (provider) => provider.favorited_by)
+  favorites: Provider[]
+
+  @Field(() => Int, { nullable: true, defaultValue: 0 })
   @Column({ default: 0 })
-  reviewCount: Number
+  review_count: number
 
   @Field(() => GenderType, { nullable: true })
   @Column({ nullable: true, default: GenderType.OTHER })
