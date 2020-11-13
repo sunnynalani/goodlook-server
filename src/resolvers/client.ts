@@ -8,7 +8,7 @@ import {
   validateRegisterInputs,
 } from '../utils/'
 import { MyContext } from '../types'
-import { Client, Provider } from '../entities'
+import { Client } from '../entities'
 import argon2 from 'argon2'
 import { COOKIE_NAME } from '../constants'
 import { getConnection } from 'typeorm'
@@ -17,7 +17,6 @@ import {
   ClientResponse,
   ClientInput,
 } from '../entities/Client'
-import { SuccessResponse } from '../entities/types'
 
 @Resolver(Client)
 export class ClientResolver {
@@ -288,63 +287,6 @@ export class ClientResolver {
         resolve(true)
       })
     )
-  }
-
-  @Mutation(() => SuccessResponse)
-  async favoriteProvider(
-    @Arg('clientId') clientId: number,
-    @Arg('providerId') providerId: number
-  ): Promise<SuccessResponse> {
-    const client = await Client.findOne(clientId)
-    const provider = await Provider.findOne(providerId)
-    const aggregateErrors = []
-    if (!client) {
-      aggregateErrors.push({
-        field: 'clientId',
-        message: 'clientId does not exist',
-      })
-    }
-    if (!provider) {
-      aggregateErrors.push({
-        field: 'providerId',
-        message: 'providerId does not exist',
-      })
-    }
-    const duplicate = client!.favorites.find((provider) => {
-      return provider.id === providerId
-    })
-    if (duplicate) {
-      aggregateErrors.push({
-        field: 'providerId',
-        message: 'this provider is already favorited',
-      })
-    }
-    if (aggregateErrors.length > 0) return { errors: aggregateErrors }
-    try {
-      const newFavorites = [...client!.favorites, provider!]
-      const userObj = {
-        ...client,
-        favorites: newFavorites,
-      }
-      await getConnection().getRepository(Client).save(userObj)
-      await getConnection()
-        .createQueryBuilder()
-        .update(Provider)
-        .set({ favorited_count: provider!.favorited_count + 1 })
-        .where('id = :id', { id: providerId })
-        .execute()
-      return { success: true }
-    } catch (err) {
-      return {
-        errors: [
-          {
-            field: 'Error',
-            message: err,
-          },
-        ],
-        success: false,
-      }
-    }
   }
 
   // @Mutation(() => SuccessResponse)

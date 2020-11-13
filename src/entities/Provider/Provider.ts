@@ -6,12 +6,11 @@ import {
   UpdateDateColumn,
   BaseEntity,
   OneToMany,
-  ManyToOne,
 } from 'typeorm'
 import { ObjectType, Field, ID, Int } from 'type-graphql'
 import { IsInt, Length, IsDate, IsEmail } from 'class-validator'
 import { Review } from '../Review'
-import { Client } from '../Client'
+import { FavoriteConnection } from '../FavoriteConnection'
 
 @ObjectType({
   description: 'The provider model',
@@ -88,12 +87,8 @@ export class Provider extends BaseEntity {
   })
   reviews: Review[]
 
-  @ManyToOne(() => Client, (client) => client.favorites)
-  favorited_by: Client[]
-
-  @Field(() => Int, { nullable: true, defaultValue: 0 })
-  @Column({ default: 0 })
-  favorited_count: number
+  @OneToMany(() => FavoriteConnection, (fc) => fc.client)
+  favorited_clients: Promise<FavoriteConnection[]>
 
   @Field(() => Int, { nullable: true, defaultValue: 0 })
   @Column({ default: 0 })
