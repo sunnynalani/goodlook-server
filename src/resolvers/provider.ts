@@ -6,6 +6,8 @@ import {
   GraphQLFilterType,
   distanceInput,
   distanceQuery,
+  GraphQLSortType,
+  sortQuery,
 } from '../utils/'
 import { MyContext } from '../types'
 import { Provider } from '../entities'
@@ -18,11 +20,8 @@ import {
   ProviderResponse,
   ProvidersResponse,
   ProviderInput,
-} from '../entities/Provider'
-import {
   AttributesInput,
-  ProviderAttributes,
-} from '../entities/ProviderAttributes'
+} from '../entities/Provider'
 
 dotenv.config()
 
@@ -70,7 +69,7 @@ export class ProviderResolver {
         where: {
           id: parseInt(req.session.providerId),
         },
-        relations: ['attributes', 'reviews'],
+        relations: ['reviews'],
       })
   }
 
@@ -84,7 +83,7 @@ export class ProviderResolver {
         where: {
           id: providerId,
         },
-        relations: ['attributes', 'reviews'],
+        relations: ['reviews'],
       })
     if (!provider) {
       return {
@@ -103,6 +102,8 @@ export class ProviderResolver {
   async providers(
     @Arg('filters', () => GraphQLFilterType, { nullable: true })
     filters: typeof GraphQLFilterType,
+    @Arg('sort', () => GraphQLSortType, { nullable: true })
+    sort: typeof GraphQLSortType,
     @Arg('within', { nullable: true })
     distanceInput: distanceInput
   ): Promise<ProvidersResponse> {
@@ -111,19 +112,25 @@ export class ProviderResolver {
       const result = await getConnection()
         .getRepository(Provider)
         .createQueryBuilder()
-      const augmentedResult = await distanceQuery(
-        filterQuery(result, filters),
-        distanceInput.latitude,
-        distanceInput.longitude,
-        distanceInput.distance
-      ).getMany()
+        .leftJoinAndSelect('Provider.reviews', 'reviews')
+      let augmentedQuery = filterQuery(result, filters)
+      augmentedQuery = distanceInput
+        ? distanceQuery(
+            augmentedQuery,
+            distanceInput.latitude,
+            distanceInput.longitude,
+            distanceInput.distance
+          )
+        : augmentedQuery
+      augmentedQuery = sortQuery(augmentedQuery, sort, 'Provider')
+      const augmentedResult = await augmentedQuery.getMany()
       providers = augmentedResult
     } catch (err) {
       return {
         errors: [
           {
-            field: 'NaN',
-            message: 'query failed',
+            field: 'Error',
+            message: err,
           },
         ],
       }
@@ -144,7 +151,6 @@ export class ProviderResolver {
     let provider: any
     const hashedPassword = await argon2.hash(input.password)
     try {
-      const attributes = await ProviderAttributes.create(attributesInput).save()
       const mapQuestData = await getMapQuestData(
         providerInput.country || '',
         providerInput.state || '',
@@ -159,9 +165,9 @@ export class ProviderResolver {
         password: hashedPassword,
         latitude: lngLat.lat,
         longitude: lngLat.lng,
+        ...attributesInput,
         ...providerInput,
       }).save()
-      result.attributes = attributes
       provider = await result.save()
     } catch (err) {
       if (err.code === '23505') {

@@ -1,6 +1,12 @@
 import 'reflect-metadata'
 import { __prod__ } from './constants'
-import { Client, Provider, ProviderAttributes, Review } from './entities'
+import {
+  Client,
+  Provider,
+  Review,
+  FavoriteConnection,
+  Follow,
+} from './entities'
 import express from 'express'
 import { ApolloServer } from 'apollo-server-express'
 import { buildSchema } from 'type-graphql'
@@ -10,7 +16,13 @@ import connectRedis from 'connect-redis'
 import dotenv from 'dotenv'
 import path from 'path'
 import { createConnection } from 'typeorm'
-import { ClientResolver, ProviderResolver, ReviewResolver } from './resolvers'
+import {
+  ClientResolver,
+  ProviderResolver,
+  ReviewResolver,
+  FavoriteResolver,
+  FollowResolver,
+} from './resolvers'
 
 dotenv.config()
 
@@ -25,7 +37,7 @@ const main = async () => {
     logging: true,
     synchronize: true,
     migrations: [path.join(__dirname, './migrations/*')],
-    entities: [Client, Provider, ProviderAttributes, Review],
+    entities: [Client, Provider, Review, FavoriteConnection, Follow],
   })
 
   //await connection.dropDatabase() //drop for testing
@@ -71,7 +83,13 @@ const main = async () => {
 
   const apolloServer = new ApolloServer({
     schema: await buildSchema({
-      resolvers: [ClientResolver, ProviderResolver, ReviewResolver],
+      resolvers: [
+        ClientResolver,
+        ProviderResolver,
+        ReviewResolver,
+        FavoriteResolver,
+        FollowResolver,
+      ],
       validate: false,
     }),
     introspection: true,

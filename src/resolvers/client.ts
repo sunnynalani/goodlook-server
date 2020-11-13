@@ -1,6 +1,12 @@
 import { Resolver, Mutation, Arg, Ctx, Query } from 'type-graphql'
 import { UsernamePasswordInput } from '../entities/types/UsernamePasswordInput'
-import { validateRegisterInputs } from '../utils/'
+import {
+  filterQuery,
+  GraphQLFilterType,
+  GraphQLSortType,
+  sortQuery,
+  validateRegisterInputs,
+} from '../utils/'
 import { MyContext } from '../types'
 import { Client } from '../entities'
 import argon2 from 'argon2'
@@ -23,7 +29,7 @@ export class ClientResolver {
         where: {
           id: parseInt(req.session.clientId),
         },
-        relations: ['reviews'],
+        relations: ['reviews', 'favorites'],
       })
   }
 
@@ -36,7 +42,7 @@ export class ClientResolver {
         where: {
           id: clientId,
         },
-        relations: ['reviews'],
+        relations: ['reviews', 'favorites'],
       })
     if (!client) {
       return {
@@ -52,13 +58,23 @@ export class ClientResolver {
   }
 
   @Query(() => ClientsResponse)
-  async clients(): Promise<ClientsResponse> {
+  async clients(
+    @Arg('filters', () => GraphQLFilterType, { nullable: true })
+    filters: typeof GraphQLFilterType,
+    @Arg('sort', () => GraphQLSortType, { nullable: true })
+    sort: typeof GraphQLSortType
+  ): Promise<ClientsResponse> {
     let clients
     try {
       const result = await getConnection()
         .getRepository(Client)
-        .find({ relations: ['reviews'] })
-      clients = result
+        .createQueryBuilder()
+        .leftJoinAndSelect('Client.reviews', 'reviews')
+        .leftJoinAndSelect('Client.favorites', 'favorites')
+      let augmentedQuery = filterQuery(result, filters)
+      augmentedQuery = sortQuery(augmentedQuery, sort, 'Client')
+      const augmentedResult = await augmentedQuery.getMany()
+      clients = augmentedResult
     } catch (err) {
       return {
         errors: [
@@ -272,4 +288,64 @@ export class ClientResolver {
       })
     )
   }
+
+  // @Mutation(() => SuccessResponse)
+  // async followClient(
+  //   @Arg('follwedId') follwedId: number,
+  //   @Arg('followerId') followerId: number
+  // ): Promise<SuccessResponse> {
+  //   const followed = await Client.findOne(follwedId)
+  //   const follower = await Client.findOne(followerId)
+  //   const aggregateErrors = []
+  //   if (!followed) {
+  //     aggregateErrors.push({
+  //       field: 'followedId',
+  //       message: 'followedId does not exist'
+  //     })
+  //   }
+  //   if (!follower) {
+  //     aggregateErrors.push({
+  //       field: 'followerId',
+  //       message: 'followerId does not exist'
+  //     })
+  //   }
+  //   //this should check for both follower and following incase duplicate follow
+  //   const duplicate = followed!.followers.find(user => {
+  //     return user.id === followerId
+  //   })
+  //   if (duplicate) {
+  //     aggregateErrors.push({
+  //       field: 'client',
+  //       message: 'this user is already being followed'
+  //     })
+  //   }
+  //   if (aggregateErrors.length > 0) return { errors: aggregateErrors }
+  //   try {
+  //     const newFollowers = [...followed!.followers, follower!]
+  //     const newFollowing = [...follower!.following, followed!]
+  //     await getConnection()
+  //       .createQueryBuilder()
+  //       .update(Client)
+  //       .set({ followers: newFollowers})
+  //       .where('id = :id', { id: followed!.id })
+  //       .execute()
+  //     await getConnection()
+  //       .createQueryBuilder()
+  //       .update(Client)
+  //       .set({ followers: newFollowing})
+  //       .where('id = :id', { id: follower!.id })
+  //       .execute()
+  //     return { success: true }
+  //   } catch (err) {
+  //     return {
+  //       errors: [
+  //         {
+  //           field: 'Error',
+  //           message: err,
+  //         },
+  //       ],
+  //       success: false,
+  //     }
+  //   }
+  // }
 }

@@ -3,29 +3,35 @@ import { InputType, Field } from 'type-graphql'
 @InputType()
 export class AttributesInput {
   @Field(() => Boolean, { nullable: true })
-  bikeParking?: Boolean
+  bike_parking?: Boolean
 
   @Field(() => Boolean, { nullable: true })
-  acceptsBitcoin?: Boolean
+  accepts_bitcoin?: Boolean
 
   @Field(() => Boolean, { nullable: true })
-  acceptsCreditCards?: Boolean
+  accepts_credit_cards?: Boolean
 
   @Field(() => Boolean, { nullable: true })
-  garageParking?: Boolean
+  garage_parking?: Boolean
 
   @Field(() => Boolean, { nullable: true })
-  streetParking?: Boolean
+  street_parking?: Boolean
 
   @Field(() => Boolean, { nullable: true })
-  dogsAllowed?: Boolean
+  dogs_allowed?: Boolean
 
   @Field(() => Boolean, { nullable: true })
-  wheelchairAccessible?: Boolean
+  wheelchair_accessible?: Boolean
 
   @Field(() => Boolean, { nullable: true })
-  valetParking?: Boolean
+  valet_parking?: Boolean
 
   @Field(() => Boolean, { nullable: true })
-  parkingLot?: Boolean
+  parking_lot?: Boolean
+
+  @Field(() => Boolean, { nullable: true })
+  licensed: Boolean
+
+  @Field(() => Boolean, { nullable: true })
+  flexible_timing: Boolean
 }
