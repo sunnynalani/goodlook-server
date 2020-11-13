@@ -320,6 +320,12 @@ export class ReviewResolver {
       }
     }
   }
+
+  @Mutation(() => SuccessResponse)
+  async delete(@Arg('id') id: number): Promise<SuccessResponse> {
+    Review.delete({ id: id })
+    return { success: true }
+  }
 }
 
 export default ReviewResolver

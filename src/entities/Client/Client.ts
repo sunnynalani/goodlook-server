@@ -12,6 +12,7 @@ import { ObjectType, Field, ID, Int } from 'type-graphql'
 import { Length, IsDate, IsEmail } from 'class-validator'
 import { Review } from '../Review'
 import { FavoriteConnection } from '../FavoriteConnection'
+import { Follow } from '../Follow'
 
 @ObjectType({
   description: 'The client model',
@@ -67,13 +68,11 @@ export class Client extends BaseEntity {
   @OneToMany(() => FavoriteConnection, (fc) => fc.provider)
   favorite_providers: Promise<FavoriteConnection[]>
 
-  // @Field(() => [Client], { nullable: true })
-  // @OneToMany(() => Client, (client) => client.following)
-  // followers: Client[]
+  @OneToMany(() => Follow, (follow) => follow.followers)
+  followers: Promise<Follow[]>
 
-  // @Field(() => [Client], { nullable: true })
-  // @ManyToOne(() => Client, (client) => client.followers)
-  // following: Client[]
+  @OneToMany(() => Follow, (follow) => follow.following)
+  following: Promise<Follow[]>
 
   @Field(() => Int, { nullable: true, defaultValue: 0 })
   @Column({ default: 0 })
