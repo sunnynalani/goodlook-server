@@ -65,17 +65,20 @@ export class Client extends BaseEntity {
   })
   reviews: Review[]
 
-  @Field(() => [Client], { nullable: true })
-  @OneToMany(() => Client, (client) => client.following)
-  followers: Client[]
-
-  @Field(() => [Client], { nullable: true })
-  @ManyToOne(() => Client, (client) => client.followers)
-  following: Client[]
-
   @Field(() => [Provider], { nullable: true })
-  @OneToMany(() => Provider, (provider) => provider.favorited_by)
+  @OneToMany(() => Provider, (provider) => provider.favorited_by, {
+    cascade: true,
+    eager: true,
+  })
   favorites: Provider[]
+
+  // @Field(() => [Client], { nullable: true })
+  // @OneToMany(() => Client, (client) => client.following)
+  // followers: Client[]
+
+  // @Field(() => [Client], { nullable: true })
+  // @ManyToOne(() => Client, (client) => client.followers)
+  // following: Client[]
 
   @Field(() => Int, { nullable: true, defaultValue: 0 })
   @Column({ default: 0 })

@@ -8,7 +8,7 @@ import {
   validateRegisterInputs,
 } from '../utils/'
 import { MyContext } from '../types'
-import { Client } from '../entities'
+import { Client, Provider } from '../entities'
 import argon2 from 'argon2'
 import { COOKIE_NAME } from '../constants'
 import { getConnection } from 'typeorm'
@@ -17,6 +17,7 @@ import {
   ClientResponse,
   ClientInput,
 } from '../entities/Client'
+import { SuccessResponse } from '../entities/types'
 
 @Resolver(Client)
 export class ClientResolver {
@@ -29,7 +30,7 @@ export class ClientResolver {
         where: {
           id: parseInt(req.session.clientId),
         },
-        relations: ['reviews'],
+        relations: ['reviews', 'favorites'],
       })
   }
 
@@ -42,7 +43,7 @@ export class ClientResolver {
         where: {
           id: clientId,
         },
-        relations: ['reviews'],
+        relations: ['reviews', 'favorites'],
       })
     if (!client) {
       return {
@@ -70,6 +71,7 @@ export class ClientResolver {
         .getRepository(Client)
         .createQueryBuilder()
         .leftJoinAndSelect('Client.reviews', 'reviews')
+        .leftJoinAndSelect('Client.favorites', 'favorites')
       let augmentedQuery = filterQuery(result, filters)
       augmentedQuery = sortQuery(augmentedQuery, sort, 'Client')
       const augmentedResult = await augmentedQuery.getMany()
@@ -287,4 +289,121 @@ export class ClientResolver {
       })
     )
   }
+
+  @Mutation(() => SuccessResponse)
+  async favoriteProvider(
+    @Arg('clientId') clientId: number,
+    @Arg('providerId') providerId: number
+  ): Promise<SuccessResponse> {
+    const client = await Client.findOne(clientId)
+    const provider = await Provider.findOne(providerId)
+    const aggregateErrors = []
+    if (!client) {
+      aggregateErrors.push({
+        field: 'clientId',
+        message: 'clientId does not exist',
+      })
+    }
+    if (!provider) {
+      aggregateErrors.push({
+        field: 'providerId',
+        message: 'providerId does not exist',
+      })
+    }
+    const duplicate = client!.favorites.find((provider) => {
+      return provider.id === providerId
+    })
+    if (duplicate) {
+      aggregateErrors.push({
+        field: 'providerId',
+        message: 'this provider is already favorited',
+      })
+    }
+    if (aggregateErrors.length > 0) return { errors: aggregateErrors }
+    try {
+      const newFavorites = [...client!.favorites, provider!]
+      const userObj = {
+        ...client,
+        favorites: newFavorites,
+      }
+      await getConnection().getRepository(Client).save(userObj)
+      await getConnection()
+        .createQueryBuilder()
+        .update(Provider)
+        .set({ favorited_count: provider!.favorited_count + 1 })
+        .where('id = :id', { id: providerId })
+        .execute()
+      return { success: true }
+    } catch (err) {
+      return {
+        errors: [
+          {
+            field: 'Error',
+            message: err,
+          },
+        ],
+        success: false,
+      }
+    }
+  }
+
+  // @Mutation(() => SuccessResponse)
+  // async followClient(
+  //   @Arg('follwedId') follwedId: number,
+  //   @Arg('followerId') followerId: number
+  // ): Promise<SuccessResponse> {
+  //   const followed = await Client.findOne(follwedId)
+  //   const follower = await Client.findOne(followerId)
+  //   const aggregateErrors = []
+  //   if (!followed) {
+  //     aggregateErrors.push({
+  //       field: 'followedId',
+  //       message: 'followedId does not exist'
+  //     })
+  //   }
+  //   if (!follower) {
+  //     aggregateErrors.push({
+  //       field: 'followerId',
+  //       message: 'followerId does not exist'
+  //     })
+  //   }
+  //   //this should check for both follower and following incase duplicate follow
+  //   const duplicate = followed!.followers.find(user => {
+  //     return user.id === followerId
+  //   })
+  //   if (duplicate) {
+  //     aggregateErrors.push({
+  //       field: 'client',
+  //       message: 'this user is already being followed'
+  //     })
+  //   }
+  //   if (aggregateErrors.length > 0) return { errors: aggregateErrors }
+  //   try {
+  //     const newFollowers = [...followed!.followers, follower!]
+  //     const newFollowing = [...follower!.following, followed!]
+  //     await getConnection()
+  //       .createQueryBuilder()
+  //       .update(Client)
+  //       .set({ followers: newFollowers})
+  //       .where('id = :id', { id: followed!.id })
+  //       .execute()
+  //     await getConnection()
+  //       .createQueryBuilder()
+  //       .update(Client)
+  //       .set({ followers: newFollowing})
+  //       .where('id = :id', { id: follower!.id })
+  //       .execute()
+  //     return { success: true }
+  //   } catch (err) {
+  //     return {
+  //       errors: [
+  //         {
+  //           field: 'Error',
+  //           message: err,
+  //         },
+  //       ],
+  //       success: false,
+  //     }
+  //   }
+  // }
 }

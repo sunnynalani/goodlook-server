@@ -6,6 +6,7 @@ import {
   UpdateDateColumn,
   BaseEntity,
   OneToMany,
+  ManyToOne,
 } from 'typeorm'
 import { ObjectType, Field, ID, Int } from 'type-graphql'
 import { IsInt, Length, IsDate, IsEmail } from 'class-validator'
@@ -87,12 +88,12 @@ export class Provider extends BaseEntity {
   })
   reviews: Review[]
 
-  @Field(() => [Client], { nullable: true })
-  @OneToMany(() => Client, (client) => client.favorites, {
-    cascade: true,
-    eager: true,
-  })
+  @ManyToOne(() => Client, (client) => client.favorites)
   favorited_by: Client[]
+
+  @Field(() => Int, { nullable: true, defaultValue: 0 })
+  @Column({ default: 0 })
+  favorited_count: number
 
   @Field(() => Int, { nullable: true, defaultValue: 0 })
   @Column({ default: 0 })
