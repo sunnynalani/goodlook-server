@@ -1,7 +1,14 @@
 import { InputType, Field } from 'type-graphql'
+import { CategoryType } from '../types'
 
 @InputType()
 export class AttributesInput {
+  @Field(() => [CategoryType], { nullable: true })
+  categories?: CategoryType[]
+
+  @Field(() => [String], { nullable: true })
+  tags?: String[]
+
   @Field(() => Boolean, { nullable: true })
   bike_parking?: Boolean
 

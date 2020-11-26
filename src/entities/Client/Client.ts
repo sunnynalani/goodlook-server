@@ -79,6 +79,11 @@ export class Client extends BaseEntity {
   review_count: number
 
   @Field(() => GenderType, { nullable: true })
-  @Column({ nullable: true, default: GenderType.OTHER })
+  @Column({
+    type: 'enum',
+    enum: GenderType,
+    nullable: true,
+    default: GenderType.OTHER,
+  })
   gender: GenderType
 }

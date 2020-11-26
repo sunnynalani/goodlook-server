@@ -11,6 +11,7 @@ import { ObjectType, Field, ID, Int } from 'type-graphql'
 import { IsInt, Length, IsDate, IsEmail } from 'class-validator'
 import { Review } from '../Review'
 import { FavoriteConnection } from '../FavoriteConnection'
+import { CategoryType } from '../types'
 
 @ObjectType({
   description: 'The provider model',
@@ -94,9 +95,14 @@ export class Provider extends BaseEntity {
   @Column({ default: 0 })
   average_rating: number
 
-  @Field(() => [String], { nullable: true })
-  @Column('text', { nullable: true, array: true, default: {} })
-  categories: String[]
+  @Field(() => [CategoryType], { nullable: true })
+  @Column({
+    type: 'enum',
+    enum: ['nail', 'lashes', 'hair', 'brows', 'wax', 'makeup', 'other'],
+    array: true,
+    default: ['other'],
+  })
+  categories: CategoryType[]
 
   @Field(() => [String], { nullable: true })
   @Column('text', { nullable: true, array: true, default: {} })

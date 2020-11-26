@@ -40,6 +40,10 @@ export enum Operator {
   OR = 'OR',
 }
 
+/**
+ * the like operator requires a '%' after it to work
+ */
+
 export const prefix = new Map([
   ['in', 'IN'],
   ['not_in', 'NOT IN'],
@@ -80,7 +84,6 @@ const filterFactory = (
     } else {
       const queryPrefix = Object.keys(filters[exp])[0]
       const queryValue = Object.values(filters[exp])[0]
-      console.log(exp)
       if (Operator.AND === parentOperator) {
         query = query.andWhere(`${exp} ${prefix.get(queryPrefix)} :value`, {
           value: queryValue,
