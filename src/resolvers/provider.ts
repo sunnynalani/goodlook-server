@@ -113,15 +113,24 @@ export class ProviderResolver {
         .getRepository(Provider)
         .createQueryBuilder()
         .leftJoinAndSelect('Provider.reviews', 'reviews')
-      let augmentedQuery = filterQuery(result, filters)
-      augmentedQuery = distanceInput
+      // let augmentedQuery = filterQuery(result, filters)
+      // augmentedQuery = distanceInput
+      //   ? distanceQuery(
+      //       augmentedQuery,
+      //       distanceInput.latitude,
+      //       distanceInput.longitude,
+      //       distanceInput.distance
+      //     )
+      //   : augmentedQuery
+      let augmentedQuery = distanceInput
         ? distanceQuery(
-            augmentedQuery,
+            result,
             distanceInput.latitude,
             distanceInput.longitude,
             distanceInput.distance
           )
-        : augmentedQuery
+        : result
+      augmentedQuery = filterQuery(result, filters)
       augmentedQuery = sortQuery(augmentedQuery, sort, 'Provider')
       const augmentedResult = await augmentedQuery.getMany()
       providers = augmentedResult
