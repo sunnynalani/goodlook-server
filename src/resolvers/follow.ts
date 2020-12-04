@@ -31,28 +31,30 @@ export class FollowResolver {
 
   @Query(() => [Client])
   async following(@Arg('followId') followId: number): Promise<Client[]> {
-    const followings: Client[] = []
+    const followers: Client[] = []
     await Follow.find({
       where: {
         followId: followId,
       },
+      relations: ['followers'],
     }).then((follows) => {
-      follows.forEach(async (follow) => followings.push(await follow.following))
+      follows.forEach(async (follow) => followers.push(await follow.followers))
     })
-    return followings
+    return followers
   }
 
   @Query(() => [Client])
   async followers(@Arg('followedId') followedId: number): Promise<Client[]> {
-    const followed: Client[] = []
+    const following: Client[] = []
     await Follow.find({
       where: {
-        followId: followedId,
+        followedId: followedId,
       },
+      relations: ['following'],
     }).then((follows) => {
-      follows.forEach(async (follow) => followed.push(await follow.followers))
+      follows.forEach(async (follow) => following.push(await follow.following))
     })
-    return followed
+    return following
   }
 
   @Mutation(() => SuccessResponse)

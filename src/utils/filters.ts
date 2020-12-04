@@ -1,4 +1,4 @@
-import { SelectQueryBuilder, Brackets, WhereExpression } from 'typeorm'
+import { SelectQueryBuilder, Brackets } from 'typeorm'
 import { GraphQLScalarType, Kind, ValueNode } from 'graphql'
 
 export const GraphQLFilterType = new GraphQLScalarType({
@@ -28,7 +28,6 @@ const filterLiteral = (ast: ValueNode): any => {
       })
       return values
     case Kind.STRING:
-      console.log(ast.value)
       return ast.value
     default:
       return null
@@ -72,36 +71,40 @@ export const filterQuery = <T>(query: SelectQueryBuilder<T>, filters: any) => {
 }
 
 const filterFactory = (
-  query: WhereExpression,
+  query: any,
   filters: any,
   parentOperator = Operator.AND
 ) => {
   Object.keys(filters).forEach((exp) => {
     if (Operator.AND === exp) {
-      query = query.andWhere(bracketFactory(query, Operator.AND))
+      query = query.andWhere(bracketFactory(filters, Operator.AND))
     } else if (Operator.OR === exp) {
-      query = query.orWhere(bracketFactory(query, Operator.OR))
+      query = query.orWhere(bracketFactory(filters, Operator.OR))
     } else {
       const queryPrefix = Object.keys(filters[exp])[0]
       const queryValue = Object.values(filters[exp])[0]
       if (Operator.AND === parentOperator) {
-        query = query.andWhere(`${exp} ${prefix.get(queryPrefix)} :value`, {
-          value: queryValue,
-        })
-      } else if (Operator.OR === exp) {
-        query = query.orWhere(`${exp} ${prefix.get(queryPrefix)} :value`, {
-          value: queryValue,
-        })
+        query = query
+          .andWhere(`${exp} ${prefix.get(queryPrefix)} :${queryValue}`, {
+            value: queryValue,
+          })
+          .setParameter(`${queryValue}`, queryValue)
+      } else if (Operator.OR === parentOperator) {
+        query = query
+          .orWhere(`${exp} ${prefix.get(queryPrefix)} :${queryValue}`, {
+            value: queryValue,
+          })
+          .setParameter(`${queryValue}`, queryValue)
       }
     }
   })
   return query
 }
 
-const bracketFactory = (query: any, operator: Operator) => {
+const bracketFactory = (filters: any, operator: Operator) => {
   return new Brackets((qb) =>
-    query[operator].map((filters: any) => {
-      filterFactory(qb, filters, operator)
+    filters[operator].map((filter: any) => {
+      filterFactory(qb, filter, operator)
     })
   )
 }
