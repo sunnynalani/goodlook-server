@@ -113,15 +113,6 @@ export class ProviderResolver {
         .getRepository(Provider)
         .createQueryBuilder()
         .leftJoinAndSelect('Provider.reviews', 'reviews')
-      // let augmentedQuery = filterQuery(result, filters)
-      // augmentedQuery = distanceInput
-      //   ? distanceQuery(
-      //       augmentedQuery,
-      //       distanceInput.latitude,
-      //       distanceInput.longitude,
-      //       distanceInput.distance
-      //     )
-      //   : augmentedQuery
       let augmentedQuery = distanceInput
         ? distanceQuery(
             result,

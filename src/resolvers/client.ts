@@ -29,7 +29,7 @@ export class ClientResolver {
         where: {
           id: parseInt(req.session.clientId),
         },
-        relations: ['reviews', 'favorites'],
+        relations: ['reviews', 'favorite_providers', 'followers', 'following'],
       })
   }
 
@@ -42,7 +42,7 @@ export class ClientResolver {
         where: {
           id: clientId,
         },
-        relations: ['reviews', 'favorites'],
+        relations: ['reviews', 'favorite_providers', 'followers', 'following'],
       })
     if (!client) {
       return {
@@ -70,7 +70,9 @@ export class ClientResolver {
         .getRepository(Client)
         .createQueryBuilder()
         .leftJoinAndSelect('Client.reviews', 'reviews')
-        .leftJoinAndSelect('Client.favorites', 'favorites')
+        .leftJoinAndSelect('Client.favorite_providers', 'favorite_providers')
+        .leftJoinAndSelect('Client.following', 'following')
+        .leftJoinAndSelect('Client.followers', 'followers')
       let augmentedQuery = filterQuery(result, filters)
       augmentedQuery = sortQuery(augmentedQuery, sort, 'Client')
       const augmentedResult = await augmentedQuery.getMany()
@@ -288,64 +290,4 @@ export class ClientResolver {
       })
     )
   }
-
-  // @Mutation(() => SuccessResponse)
-  // async followClient(
-  //   @Arg('follwedId') follwedId: number,
-  //   @Arg('followerId') followerId: number
-  // ): Promise<SuccessResponse> {
-  //   const followed = await Client.findOne(follwedId)
-  //   const follower = await Client.findOne(followerId)
-  //   const aggregateErrors = []
-  //   if (!followed) {
-  //     aggregateErrors.push({
-  //       field: 'followedId',
-  //       message: 'followedId does not exist'
-  //     })
-  //   }
-  //   if (!follower) {
-  //     aggregateErrors.push({
-  //       field: 'followerId',
-  //       message: 'followerId does not exist'
-  //     })
-  //   }
-  //   //this should check for both follower and following incase duplicate follow
-  //   const duplicate = followed!.followers.find(user => {
-  //     return user.id === followerId
-  //   })
-  //   if (duplicate) {
-  //     aggregateErrors.push({
-  //       field: 'client',
-  //       message: 'this user is already being followed'
-  //     })
-  //   }
-  //   if (aggregateErrors.length > 0) return { errors: aggregateErrors }
-  //   try {
-  //     const newFollowers = [...followed!.followers, follower!]
-  //     const newFollowing = [...follower!.following, followed!]
-  //     await getConnection()
-  //       .createQueryBuilder()
-  //       .update(Client)
-  //       .set({ followers: newFollowers})
-  //       .where('id = :id', { id: followed!.id })
-  //       .execute()
-  //     await getConnection()
-  //       .createQueryBuilder()
-  //       .update(Client)
-  //       .set({ followers: newFollowing})
-  //       .where('id = :id', { id: follower!.id })
-  //       .execute()
-  //     return { success: true }
-  //   } catch (err) {
-  //     return {
-  //       errors: [
-  //         {
-  //           field: 'Error',
-  //           message: err,
-  //         },
-  //       ],
-  //       success: false,
-  //     }
-  //   }
-  // }
 }
