@@ -93,6 +93,7 @@ export class ClientResolver {
   @Mutation(() => ClientResponse)
   async registerClient(
     @Arg('input') input: UsernamePasswordInput,
+    @Arg('attributeInput') attributesInput: ClientInput,
     @Ctx() { req }: MyContext
   ): Promise<ClientResponse> {
     const errors = validateRegisterInputs(input)
@@ -108,6 +109,8 @@ export class ClientResolver {
           username: input.username,
           password: hashedPassword,
           email: input.email,
+          first_name: attributesInput.first_name,
+          last_name: attributesInput.last_name,
         })
         .returning('*')
         .execute()
