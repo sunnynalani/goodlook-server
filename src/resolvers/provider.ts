@@ -159,26 +159,30 @@ export class ProviderResolver {
     if (errors) return { errors }
     let provider: any
     const hashedPassword = await argon2.hash(input.password)
+    let lngLat = null
     try {
-      const mapQuestData = await getMapQuestData(
-        providerInput.country || '',
-        providerInput.state || '',
-        providerInput.city || '',
-        providerInput.street || '',
-        String(providerInput.zipcode) || ''
-      )
-      const lngLat = mapQuestData.results[0].locations[0].latLng
+      if (providerInput) {
+        const mapQuestData = await getMapQuestData(
+          providerInput.country || '',
+          providerInput.state || '',
+          providerInput.city || '',
+          providerInput.street || '',
+          String(providerInput.zipcode) || ''
+        )
+        lngLat = mapQuestData.results[0].locations[0].latLng
+      }
       const result = await Provider.create({
         email: input.email,
         username: input.username,
         password: hashedPassword,
-        latitude: lngLat.lat,
-        longitude: lngLat.lng,
+        latitude: lngLat ? lngLat.lat : undefined,
+        longitude: lngLat ? lngLat.lng : undefined,
         ...attributesInput,
         ...providerInput,
       }).save()
       provider = await result.save()
     } catch (err) {
+      console.error(err)
       if (err.code === '23505') {
         //duplicate username...
         return {
