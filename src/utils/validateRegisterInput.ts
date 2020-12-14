@@ -1,5 +1,11 @@
 import { UsernamePasswordInput } from '../entities/types/UsernamePasswordInput'
 
+/**
+ * rudamentary validation
+ * there are other better libraries that provide validation
+ * use those instead
+ */
+
 export const validateRegisterInputs = (input: UsernamePasswordInput) => {
   const aggeragateErrors = []
   if (!input.email.includes('@')) {

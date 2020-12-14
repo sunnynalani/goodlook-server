@@ -62,6 +62,40 @@ export const prefix = new Map([
   ['not_match_ci', '!~*'],
 ])
 
+/**
+ * dynamic filtering
+ * uses the postgresql prefix to filter
+ * uses operators to either OR or AND
+ *
+ * the like prefix in postgresql doesn't work very well
+ * implements a string distance algorithm on the search would be better (levenshtein distance)
+ *
+ * example:
+ *
+ * no operator filter
+ * filters: { field: { prefix: value } }
+ *
+ * and filter
+ * filters:
+ * { AND: [
+ *  { field: { prefix: value } },
+ *  { field: { prefix: value } },
+ * ]}
+ *
+ * or + and + nested
+ * filters:
+ * { OR: [
+ *  {
+ *    AND: [
+ *      { field: { prefix: value } },
+ *      { field: { prefix: value } },
+ *    ]
+ *  },
+ *  { field: { prefix: value } },
+ *  { field: { prefix: value } },
+ * ]}
+ */
+
 export const filterQuery = <T>(query: SelectQueryBuilder<T>, filters: any) => {
   if (!filters) {
     return query

@@ -31,6 +31,14 @@ export enum OrderBy {
   ASC = 'ASC',
 }
 
+/**
+ * dynamic sorting...
+ * self explanatory
+ *
+ * example:
+ * sort: { value: 'ASC' } or { value: 'DESC' }
+ */
+
 export const sortQuery = <T>(
   query: SelectQueryBuilder<T>,
   sort: any,

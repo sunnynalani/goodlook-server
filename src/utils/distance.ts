@@ -16,6 +16,13 @@ export class distanceInput {
   distance: Number
 }
 
+/**
+ *
+ * grabs distance by longitude and latitude
+ * uses raw sql calculation to sort by distance
+ * use postgis plugin...
+ *
+ */
 export const distanceQuery = <T>(
   query: SelectQueryBuilder<T>,
   latitude: Number,
